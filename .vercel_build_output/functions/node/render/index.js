@@ -1421,7 +1421,7 @@ function writable(value, start = noop) {
   function update(fn) {
     set(fn(value));
   }
-  function subscribe2(run2, invalidate = noop) {
+  function subscribe(run2, invalidate = noop) {
     const subscriber = [run2, invalidate];
     subscribers.push(subscriber);
     if (subscribers.length === 1) {
@@ -1439,7 +1439,7 @@ function writable(value, start = noop) {
       }
     };
   }
-  return {set, update, subscribe: subscribe2};
+  return {set, update, subscribe};
 }
 function hash(value) {
   let hash2 = 5381;
@@ -1461,7 +1461,7 @@ async function render_response({
   status,
   error: error3,
   branch,
-  page: page2
+  page
 }) {
   const css2 = new Set(options2.entry.css);
   const js = new Set(options2.entry.js);
@@ -1494,7 +1494,7 @@ async function render_response({
         navigating: writable(null),
         session
       },
-      page: page2,
+      page,
       components: branch.map(({node}) => node.module.default)
     };
     for (let i = 0; i < branch.length; i += 1) {
@@ -1536,7 +1536,7 @@ async function render_response({
 				session: ${try_serialize($session, (error4) => {
       throw new Error(`Failed to serialize session data: ${error4.message}`);
     })},
-				host: ${page2 && page2.host ? s$1(page2.host) : "location.host"},
+				host: ${page && page.host ? s$1(page.host) : "location.host"},
 				route: ${!!page_config.router},
 				spa: ${!page_config.ssr},
 				trailing_slash: ${s$1(options2.trailing_slash)},
@@ -1547,10 +1547,10 @@ async function render_response({
 						${branch.map(({node}) => `import(${s$1(node.entry)})`).join(",\n						")}
 					],
 					page: {
-						host: ${page2.host ? s$1(page2.host) : "location.host"}, // TODO this is redundant
-						path: ${s$1(page2.path)},
-						query: new URLSearchParams(${s$1(page2.query.toString())}),
-						params: ${s$1(page2.params)}
+						host: ${page.host ? s$1(page.host) : "location.host"}, // TODO this is redundant
+						path: ${s$1(page.path)},
+						query: new URLSearchParams(${s$1(page.query.toString())}),
+						params: ${s$1(page.params)}
 					}
 				}` : "null"}
 			});
@@ -1637,8 +1637,8 @@ function normalize(loaded) {
   }
   return loaded;
 }
-function resolve(base2, path) {
-  const baseparts = path[0] === "/" ? [] : base2.slice(1).split("/");
+function resolve(base, path) {
+  const baseparts = path[0] === "/" ? [] : base.slice(1).split("/");
   const pathparts = path[0] === "/" ? path.slice(1).split("/") : path.split("/");
   baseparts.pop();
   for (let i = 0; i < pathparts.length; i += 1) {
@@ -1658,7 +1658,7 @@ async function load_node({
   options: options2,
   state,
   route,
-  page: page2,
+  page,
   node,
   $session,
   context,
@@ -1673,7 +1673,7 @@ async function load_node({
   let loaded;
   if (module2.load) {
     const load_input = {
-      page: page2,
+      page,
       get session() {
         uses_credentials = true;
         return $session;
@@ -1711,7 +1711,7 @@ async function load_node({
           const resolved = resolve(request.path, path);
           const filename = resolved.slice(1);
           const filename_html = `${filename}/index.html`;
-          const asset = options2.manifest.assets.find((d2) => d2.file === filename || d2.file === filename_html);
+          const asset = options2.manifest.assets.find((d) => d.file === filename || d.file === filename_html);
           if (asset) {
             if (options2.read) {
               response = new Response(options2.read(asset.file), {
@@ -1720,7 +1720,7 @@ async function load_node({
                 }
               });
             } else {
-              response = await fetch(`http://${page2.host}/${asset.file}`, opts);
+              response = await fetch(`http://${page.host}/${asset.file}`, opts);
             }
           }
           if (!response) {
@@ -1853,7 +1853,7 @@ function escape(str) {
 async function respond_with_error({request, options: options2, state, $session, status, error: error3}) {
   const default_layout = await options2.load_component(options2.manifest.layout);
   const default_error = await options2.load_component(options2.manifest.error);
-  const page2 = {
+  const page = {
     host: request.host,
     path: request.path,
     query: request.query,
@@ -1864,7 +1864,7 @@ async function respond_with_error({request, options: options2, state, $session, 
     options: options2,
     state,
     route: null,
-    page: page2,
+    page,
     node: default_layout,
     $session,
     context: {},
@@ -1878,7 +1878,7 @@ async function respond_with_error({request, options: options2, state, $session, 
       options: options2,
       state,
       route: null,
-      page: page2,
+      page,
       node: default_error,
       $session,
       context: loaded.context,
@@ -1900,7 +1900,7 @@ async function respond_with_error({request, options: options2, state, $session, 
       status,
       error: error3,
       branch,
-      page: page2
+      page
     });
   } catch (error4) {
     options2.handle_error(error4);
@@ -1914,7 +1914,7 @@ async function respond_with_error({request, options: options2, state, $session, 
 async function respond$1({request, options: options2, state, $session, route}) {
   const match = route.pattern.exec(request.path);
   const params = route.params(match);
-  const page2 = {
+  const page = {
     host: request.host,
     path: request.path,
     query: request.query,
@@ -1964,7 +1964,7 @@ async function respond$1({request, options: options2, state, $session, route}) {
               options: options2,
               state,
               route,
-              page: page2,
+              page,
               node,
               $session,
               context,
@@ -2005,7 +2005,7 @@ async function respond$1({request, options: options2, state, $session, route}) {
                     options: options2,
                     state,
                     route,
-                    page: page2,
+                    page,
                     node: error_node,
                     $session,
                     context: node_loaded.context,
@@ -2052,7 +2052,7 @@ async function respond$1({request, options: options2, state, $session, route}) {
       status,
       error: error3,
       branch: branch && branch.filter(Boolean),
-      page: page2
+      page
     });
   } catch (error4) {
     options2.handle_error(error4);
@@ -2363,46 +2363,10 @@ function run_all(fns) {
 function is_function(thing) {
   return typeof thing === "function";
 }
-function safe_not_equal2(a, b) {
-  return a != a ? b == b : a !== b || (a && typeof a === "object" || typeof a === "function");
-}
 function is_empty(obj) {
   return Object.keys(obj).length === 0;
 }
-function subscribe(store, ...callbacks) {
-  if (store == null) {
-    return noop2;
-  }
-  const unsub = store.subscribe(...callbacks);
-  return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
-}
-var is_client = typeof window !== "undefined";
-var now = is_client ? () => window.performance.now() : () => Date.now();
-var raf = is_client ? (cb) => requestAnimationFrame(cb) : noop2;
 var tasks = new Set();
-function run_tasks(now2) {
-  tasks.forEach((task) => {
-    if (!task.c(now2)) {
-      tasks.delete(task);
-      task.f();
-    }
-  });
-  if (tasks.size !== 0)
-    raf(run_tasks);
-}
-function loop(callback) {
-  let task;
-  if (tasks.size === 0)
-    raf(run_tasks);
-  return {
-    promise: new Promise((fulfill) => {
-      tasks.add(task = {c: callback, f: fulfill});
-    }),
-    abort() {
-      tasks.delete(task);
-    }
-  };
-}
 var active_docs = new Set();
 var current_component;
 function set_current_component(component) {
@@ -2421,9 +2385,6 @@ function afterUpdate(fn) {
 }
 function setContext(key, context) {
   get_current_component().$$.context.set(key, context);
-}
-function getContext(key) {
-  return get_current_component().$$.context.get(key);
 }
 var resolved_promise = Promise.resolve();
 var seen_callbacks = new Set();
@@ -2607,161 +2568,14 @@ function v4() {
   return out;
 }
 
-// node_modules/svelte/store/index.mjs
-var subscriber_queue2 = [];
-function writable2(value, start = noop2) {
-  let stop;
-  const subscribers = [];
-  function set(new_value) {
-    if (safe_not_equal2(value, new_value)) {
-      value = new_value;
-      if (stop) {
-        const run_queue = !subscriber_queue2.length;
-        for (let i = 0; i < subscribers.length; i += 1) {
-          const s2 = subscribers[i];
-          s2[1]();
-          subscriber_queue2.push(s2, value);
-        }
-        if (run_queue) {
-          for (let i = 0; i < subscriber_queue2.length; i += 2) {
-            subscriber_queue2[i][0](subscriber_queue2[i + 1]);
-          }
-          subscriber_queue2.length = 0;
-        }
-      }
-    }
-  }
-  function update(fn) {
-    set(fn(value));
-  }
-  function subscribe2(run2, invalidate = noop2) {
-    const subscriber = [run2, invalidate];
-    subscribers.push(subscriber);
-    if (subscribers.length === 1) {
-      stop = start(set) || noop2;
-    }
-    run2(value);
-    return () => {
-      const index2 = subscribers.indexOf(subscriber);
-      if (index2 !== -1) {
-        subscribers.splice(index2, 1);
-      }
-      if (subscribers.length === 0) {
-        stop();
-        stop = null;
-      }
-    };
-  }
-  return {set, update, subscribe: subscribe2};
-}
-
-// node_modules/svelte/motion/index.mjs
-function is_date(obj) {
-  return Object.prototype.toString.call(obj) === "[object Date]";
-}
-function tick_spring(ctx, last_value, current_value, target_value) {
-  if (typeof current_value === "number" || is_date(current_value)) {
-    const delta = target_value - current_value;
-    const velocity = (current_value - last_value) / (ctx.dt || 1 / 60);
-    const spring2 = ctx.opts.stiffness * delta;
-    const damper = ctx.opts.damping * velocity;
-    const acceleration = (spring2 - damper) * ctx.inv_mass;
-    const d2 = (velocity + acceleration) * ctx.dt;
-    if (Math.abs(d2) < ctx.opts.precision && Math.abs(delta) < ctx.opts.precision) {
-      return target_value;
-    } else {
-      ctx.settled = false;
-      return is_date(current_value) ? new Date(current_value.getTime() + d2) : current_value + d2;
-    }
-  } else if (Array.isArray(current_value)) {
-    return current_value.map((_, i) => tick_spring(ctx, last_value[i], current_value[i], target_value[i]));
-  } else if (typeof current_value === "object") {
-    const next_value = {};
-    for (const k in current_value) {
-      next_value[k] = tick_spring(ctx, last_value[k], current_value[k], target_value[k]);
-    }
-    return next_value;
-  } else {
-    throw new Error(`Cannot spring ${typeof current_value} values`);
-  }
-}
-function spring(value, opts = {}) {
-  const store = writable2(value);
-  const {stiffness = 0.15, damping = 0.8, precision = 0.01} = opts;
-  let last_time;
-  let task;
-  let current_token;
-  let last_value = value;
-  let target_value = value;
-  let inv_mass = 1;
-  let inv_mass_recovery_rate = 0;
-  let cancel_task = false;
-  function set(new_value, opts2 = {}) {
-    target_value = new_value;
-    const token = current_token = {};
-    if (value == null || opts2.hard || spring2.stiffness >= 1 && spring2.damping >= 1) {
-      cancel_task = true;
-      last_time = now();
-      last_value = new_value;
-      store.set(value = target_value);
-      return Promise.resolve();
-    } else if (opts2.soft) {
-      const rate = opts2.soft === true ? 0.5 : +opts2.soft;
-      inv_mass_recovery_rate = 1 / (rate * 60);
-      inv_mass = 0;
-    }
-    if (!task) {
-      last_time = now();
-      cancel_task = false;
-      task = loop((now2) => {
-        if (cancel_task) {
-          cancel_task = false;
-          task = null;
-          return false;
-        }
-        inv_mass = Math.min(inv_mass + inv_mass_recovery_rate, 1);
-        const ctx = {
-          inv_mass,
-          opts: spring2,
-          settled: true,
-          dt: (now2 - last_time) * 60 / 1e3
-        };
-        const next_value = tick_spring(ctx, last_value, value, target_value);
-        last_time = now2;
-        last_value = value;
-        store.set(value = next_value);
-        if (ctx.settled) {
-          task = null;
-        }
-        return !ctx.settled;
-      });
-    }
-    return new Promise((fulfil) => {
-      task.promise.then(() => {
-        if (token === current_token)
-          fulfil();
-      });
-    });
-  }
-  const spring2 = {
-    set,
-    update: (fn, opts2) => set(fn(target_value, value), opts2),
-    subscribe: store.subscribe,
-    stiffness,
-    damping,
-    precision
-  };
-  return spring2;
-}
-
 // .svelte-kit/output/server/app.js
-var css$6 = {
+var css = {
   code: "#svelte-announcer.svelte-1j55zn5{position:absolute;left:0;top:0;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden;white-space:nowrap;width:1px;height:1px}",
   map: `{"version":3,"file":"root.svelte","sources":["root.svelte"],"sourcesContent":["<!-- This file is generated by @sveltejs/kit \u2014 do not edit it! -->\\n<script>\\n\\timport { setContext, afterUpdate, onMount } from 'svelte';\\n\\n\\t// stores\\n\\texport let stores;\\n\\texport let page;\\n\\n\\texport let components;\\n\\texport let props_0 = null;\\n\\texport let props_1 = null;\\n\\texport let props_2 = null;\\n\\n\\tsetContext('__svelte__', stores);\\n\\n\\t$: stores.page.set(page);\\n\\tafterUpdate(stores.page.notify);\\n\\n\\tlet mounted = false;\\n\\tlet navigated = false;\\n\\tlet title = null;\\n\\n\\tonMount(() => {\\n\\t\\tconst unsubscribe = stores.page.subscribe(() => {\\n\\t\\t\\tif (mounted) {\\n\\t\\t\\t\\tnavigated = true;\\n\\t\\t\\t\\ttitle = document.title || 'untitled page';\\n\\t\\t\\t}\\n\\t\\t});\\n\\n\\t\\tmounted = true;\\n\\t\\treturn unsubscribe;\\n\\t});\\n</script>\\n\\n<svelte:component this={components[0]} {...(props_0 || {})}>\\n\\t{#if components[1]}\\n\\t\\t<svelte:component this={components[1]} {...(props_1 || {})}>\\n\\t\\t\\t{#if components[2]}\\n\\t\\t\\t\\t<svelte:component this={components[2]} {...(props_2 || {})}/>\\n\\t\\t\\t{/if}\\n\\t\\t</svelte:component>\\n\\t{/if}\\n</svelte:component>\\n\\n{#if mounted}\\n\\t<div id=\\"svelte-announcer\\" aria-live=\\"assertive\\" aria-atomic=\\"true\\">\\n\\t\\t{#if navigated}\\n\\t\\t\\t{title}\\n\\t\\t{/if}\\n\\t</div>\\n{/if}\\n\\n<style>\\n\\t#svelte-announcer {\\n\\t\\tposition: absolute;\\n\\t\\tleft: 0;\\n\\t\\ttop: 0;\\n\\t\\tclip: rect(0 0 0 0);\\n\\t\\tclip-path: inset(50%);\\n\\t\\toverflow: hidden;\\n\\t\\twhite-space: nowrap;\\n\\t\\twidth: 1px;\\n\\t\\theight: 1px;\\n\\t}\\n</style>"],"names":[],"mappings":"AAsDC,iBAAiB,eAAC,CAAC,AAClB,QAAQ,CAAE,QAAQ,CAClB,IAAI,CAAE,CAAC,CACP,GAAG,CAAE,CAAC,CACN,IAAI,CAAE,KAAK,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CACnB,SAAS,CAAE,MAAM,GAAG,CAAC,CACrB,QAAQ,CAAE,MAAM,CAChB,WAAW,CAAE,MAAM,CACnB,KAAK,CAAE,GAAG,CACV,MAAM,CAAE,GAAG,AACZ,CAAC"}`
 };
 var Root = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let {stores} = $$props;
-  let {page: page2} = $$props;
+  let {page} = $$props;
   let {components} = $$props;
   let {props_0 = null} = $$props;
   let {props_1 = null} = $$props;
@@ -2783,8 +2597,8 @@ var Root = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   });
   if ($$props.stores === void 0 && $$bindings.stores && stores !== void 0)
     $$bindings.stores(stores);
-  if ($$props.page === void 0 && $$bindings.page && page2 !== void 0)
-    $$bindings.page(page2);
+  if ($$props.page === void 0 && $$bindings.page && page !== void 0)
+    $$bindings.page(page);
   if ($$props.components === void 0 && $$bindings.components && components !== void 0)
     $$bindings.components(components);
   if ($$props.props_0 === void 0 && $$bindings.props_0 && props_0 !== void 0)
@@ -2793,9 +2607,9 @@ var Root = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     $$bindings.props_1(props_1);
   if ($$props.props_2 === void 0 && $$bindings.props_2 && props_2 !== void 0)
     $$bindings.props_2(props_2);
-  $$result.css.add(css$6);
+  $$result.css.add(css);
   {
-    stores.page.set(page2);
+    stores.page.set(page);
   }
   return `
 
@@ -2829,7 +2643,49 @@ var user_hooks = /* @__PURE__ */ Object.freeze({
   [Symbol.toStringTag]: "Module",
   handle
 });
-var template = ({head, body}) => '<!DOCTYPE html>\n<html lang="en">\n	<head>\n		<meta charset="utf-8" />\n		<link rel="icon" href="/favicon.ico" />\n		<meta name="viewport" content="width=device-width, initial-scale=1" />\n\n		' + head + '\n	</head>\n	<body>\n		<div id="svelte">' + body + "</div>\n	</body>\n</html>\n";
+var template = ({head, body}) => `<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+	<meta charset="utf-8" />
+	<link rel="icon" href="/favicon.png" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="theme-color" content="#ff00ff" />
+	<link rel="preload" href="subset-SelfModern-Regular.woff2" as="font" crossorigin="anonymous" />
+	<link rel="preload" href="subset-SelfModern-Italic.woff2" as="font" crossorigin="anonymous" />
+	<title>
+		Plan Libre - Journal de la Maison de l'Architecture Occitanie-Pyr\xE9n\xE9es
+	</title>
+	<meta name="description" content="Journal de la Maison de l'Architecture Occitanie-Pyr\xE9n\xE9es" />
+	<meta name="og:title" content="Plan Libre" />
+	<meta name="og:description" content="Journal de la Maison de l'Architecture Occitanie-Pyr\xE9n\xE9es" />
+	<meta name="og:type" content="website" />
+	<meta name="og:image" content="logo.png" />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content="Plan Libre" />
+	<meta name="twitter:description" content="Journal de la Maison de l'Architecture Occitanie-Pyr\xE9n\xE9es" />
+	<meta name="twitter:image" content="logo.png" />
+	<style>
+		@font-face {
+			font-family: 'Self Modern';
+			src: url('subset-SelfModern-Regular.woff') format('woff');
+			src: url('subset-SelfModern-Regular.woff2') format('woff2');
+			font-weight: normal;
+			font-style: normal;
+			font-display: fallback;
+		}
+
+		@font-face {
+			font-family: 'Self Modern';
+			src: url('subset-SelfModern-Italic.woff') format('woff');
+			src: url('subset-SelfModern-Italic.woff2') format('woff2');
+			font-weight: normal;
+			font-style: italic;
+			font-display: fallback;
+		}
+	</style>
+
+	` + head + '\n</head>\n\n<body>\n	<div id="svelte">' + body + "</div>\n</body>\n\n</html>";
 var options = null;
 function init(settings) {
   set_paths(settings.paths);
@@ -2838,9 +2694,9 @@ function init(settings) {
     amp: false,
     dev: false,
     entry: {
-      file: "/./_app/start-2065fffb.js",
+      file: "/./_app/start-ae63deed.js",
       css: ["/./_app/assets/start-a8cd1609.css"],
-      js: ["/./_app/start-2065fffb.js", "/./_app/chunks/vendor-4eb29b52.js"]
+      js: ["/./_app/start-ae63deed.js", "/./_app/chunks/vendor-9ceb2d96.js"]
     },
     fetched: void 0,
     floc: false,
@@ -2865,10 +2721,9 @@ function init(settings) {
     trailing_slash: "never"
   };
 }
-var d = decodeURIComponent;
 var empty = () => ({});
 var manifest = {
-  assets: [{"file": "favicon.ico", "size": 1150, "type": "image/vnd.microsoft.icon"}, {"file": "robots.txt", "size": 67, "type": "text/plain"}, {"file": "svelte-welcome.png", "size": 360807, "type": "image/png"}, {"file": "svelte-welcome.webp", "size": 115470, "type": "image/webp"}],
+  assets: [{"file": "favicon.ico", "size": 1150, "type": "image/vnd.microsoft.icon"}, {"file": "favicon.png", "size": 5209, "type": "image/png"}, {"file": "global.css", "size": 4109, "type": "text/css"}, {"file": "logo-192.png", "size": 6862, "type": "image/png"}, {"file": "logo-512.png", "size": 20578, "type": "image/png"}, {"file": "logo.png", "size": 27680, "type": "image/png"}, {"file": "manifest.json", "size": 432, "type": "application/json"}, {"file": "robots.txt", "size": 67, "type": "text/plain"}, {"file": "subset-SelfModern-Italic.woff", "size": 26492, "type": "font/woff"}, {"file": "subset-SelfModern-Italic.woff2", "size": 20972, "type": "font/woff2"}, {"file": "subset-SelfModern-Regular.woff", "size": 24988, "type": "font/woff"}, {"file": "subset-SelfModern-Regular.woff2", "size": 19924, "type": "font/woff2"}, {"file": "svelte-welcome.png", "size": 360807, "type": "image/png"}, {"file": "svelte-welcome.webp", "size": 115470, "type": "image/webp"}],
   layout: "src/routes/__layout.svelte",
   error: ".svelte-kit/build/components/error.svelte",
   routes: [
@@ -2878,36 +2733,6 @@ var manifest = {
       params: empty,
       a: ["src/routes/__layout.svelte", "src/routes/index.svelte"],
       b: [".svelte-kit/build/components/error.svelte"]
-    },
-    {
-      type: "page",
-      pattern: /^\/about\/?$/,
-      params: empty,
-      a: ["src/routes/__layout.svelte", "src/routes/about.svelte"],
-      b: [".svelte-kit/build/components/error.svelte"]
-    },
-    {
-      type: "endpoint",
-      pattern: /^\/todos\.json$/,
-      params: empty,
-      load: () => Promise.resolve().then(function() {
-        return index_json;
-      })
-    },
-    {
-      type: "page",
-      pattern: /^\/todos\/?$/,
-      params: empty,
-      a: ["src/routes/__layout.svelte", "src/routes/todos/index.svelte"],
-      b: [".svelte-kit/build/components/error.svelte"]
-    },
-    {
-      type: "endpoint",
-      pattern: /^\/todos\/([^/]+?)\.json$/,
-      params: (m) => ({uid: d(m[1])}),
-      load: () => Promise.resolve().then(function() {
-        return _uid__json;
-      })
     }
   ]
 };
@@ -2923,16 +2748,10 @@ var module_lookup = {
     return error2;
   }),
   "src/routes/index.svelte": () => Promise.resolve().then(function() {
-    return index$1;
-  }),
-  "src/routes/about.svelte": () => Promise.resolve().then(function() {
-    return about;
-  }),
-  "src/routes/todos/index.svelte": () => Promise.resolve().then(function() {
     return index;
   })
 };
-var metadata_lookup = {"src/routes/__layout.svelte": {"entry": "/./_app/pages/__layout.svelte-9181365d.js", "css": ["/./_app/assets/pages/__layout.svelte-d4883a00.css"], "js": ["/./_app/pages/__layout.svelte-9181365d.js", "/./_app/chunks/vendor-4eb29b52.js"], "styles": null}, ".svelte-kit/build/components/error.svelte": {"entry": "/./_app/error.svelte-caf41c4a.js", "css": [], "js": ["/./_app/error.svelte-caf41c4a.js", "/./_app/chunks/vendor-4eb29b52.js"], "styles": null}, "src/routes/index.svelte": {"entry": "/./_app/pages/index.svelte-d0897d0b.js", "css": ["/./_app/assets/pages/index.svelte-078f1a0b.css"], "js": ["/./_app/pages/index.svelte-d0897d0b.js", "/./_app/chunks/vendor-4eb29b52.js"], "styles": null}, "src/routes/about.svelte": {"entry": "/./_app/pages/about.svelte-7ef77538.js", "css": ["/./_app/assets/pages/about.svelte-4db5be0d.css"], "js": ["/./_app/pages/about.svelte-7ef77538.js", "/./_app/chunks/vendor-4eb29b52.js"], "styles": null}, "src/routes/todos/index.svelte": {"entry": "/./_app/pages/todos/index.svelte-a6140a97.js", "css": ["/./_app/assets/pages/todos/index.svelte-ef0435f2.css"], "js": ["/./_app/pages/todos/index.svelte-a6140a97.js", "/./_app/chunks/vendor-4eb29b52.js"], "styles": null}};
+var metadata_lookup = {"src/routes/__layout.svelte": {"entry": "/./_app/pages/__layout.svelte-2a45d6f6.js", "css": ["/./_app/assets/pages/__layout.svelte-163c9400.css"], "js": ["/./_app/pages/__layout.svelte-2a45d6f6.js", "/./_app/chunks/vendor-9ceb2d96.js"], "styles": null}, ".svelte-kit/build/components/error.svelte": {"entry": "/./_app/error.svelte-b4401cb7.js", "css": [], "js": ["/./_app/error.svelte-b4401cb7.js", "/./_app/chunks/vendor-9ceb2d96.js"], "styles": null}, "src/routes/index.svelte": {"entry": "/./_app/pages/index.svelte-4a9dc16d.js", "css": [], "js": ["/./_app/pages/index.svelte-4a9dc16d.js", "/./_app/chunks/vendor-9ceb2d96.js"], "styles": null}};
 async function load_component(file) {
   return {
     module: await module_lookup[file](),
@@ -2946,132 +2765,49 @@ function render(request, {
   const host = request.headers["host"];
   return respond({...request, host}, options, {prerender: prerender2});
 }
-var base = "https://api.svelte.dev";
-async function api(request, resource, data) {
-  if (!request.locals.userid) {
-    return {status: 401};
-  }
-  const res = await fetch(`${base}/${resource}`, {
-    method: request.method,
-    headers: {
-      "content-type": "application/json"
-    },
-    body: data && JSON.stringify(data)
-  });
-  if (res.ok && request.method !== "GET" && request.headers.accept !== "application/json") {
-    return {
-      status: 303,
-      headers: {
-        location: "/todos"
-      }
-    };
-  }
-  return {
-    status: res.status,
-    body: await res.json()
-  };
-}
-var get = async (request) => {
-  const response = await api(request, `todos/${request.locals.userid}`);
-  if (response.status === 404) {
-    return {body: []};
-  }
-  return response;
-};
-var post = async (request) => {
-  const response = await api(request, `todos/${request.locals.userid}`, {
-    text: request.body.get("text")
-  });
-  return response;
-};
-var index_json = /* @__PURE__ */ Object.freeze({
-  __proto__: null,
-  [Symbol.toStringTag]: "Module",
-  get,
-  post
-});
-var patch = async (request) => {
-  return api(request, `todos/${request.locals.userid}/${request.params.uid}`, {
-    text: request.body.get("text"),
-    done: request.body.has("done") ? !!request.body.get("done") : void 0
-  });
-};
-var del = async (request) => {
-  return api(request, `todos/${request.locals.userid}/${request.params.uid}`);
-};
-var _uid__json = /* @__PURE__ */ Object.freeze({
-  __proto__: null,
-  [Symbol.toStringTag]: "Module",
-  patch,
-  del
-});
-var getStores = () => {
-  const stores = getContext("__svelte__");
-  return {
-    page: {
-      subscribe: stores.page.subscribe
-    },
-    navigating: {
-      subscribe: stores.navigating.subscribe
-    },
-    get preloading() {
-      console.error("stores.preloading is deprecated; use stores.navigating instead");
-      return {
-        subscribe: stores.navigating.subscribe
-      };
-    },
-    session: stores.session
-  };
-};
-var page = {
-  subscribe(fn) {
-    const store = getStores().page;
-    return store.subscribe(fn);
-  }
-};
-var logo = "/_app/assets/svelte-logo.87df40b8.svg";
-var css$5 = {
-  code: "header.svelte-1twf6mk.svelte-1twf6mk{display:flex;justify-content:space-between}.corner.svelte-1twf6mk.svelte-1twf6mk{width:3em;height:3em}.corner.svelte-1twf6mk a.svelte-1twf6mk{display:flex;align-items:center;justify-content:center;width:100%;height:100%}.corner.svelte-1twf6mk img.svelte-1twf6mk{width:2em;height:2em;object-fit:contain}nav.svelte-1twf6mk.svelte-1twf6mk{display:flex;justify-content:center;--background:rgba(255, 255, 255, 0.7)}svg.svelte-1twf6mk.svelte-1twf6mk{width:2em;height:3em;display:block}path.svelte-1twf6mk.svelte-1twf6mk{fill:var(--background)}ul.svelte-1twf6mk.svelte-1twf6mk{position:relative;padding:0;margin:0;height:3em;display:flex;justify-content:center;align-items:center;list-style:none;background:var(--background);background-size:contain}li.svelte-1twf6mk.svelte-1twf6mk{position:relative;height:100%}li.active.svelte-1twf6mk.svelte-1twf6mk::before{--size:6px;content:'';width:0;height:0;position:absolute;top:0;left:calc(50% - var(--size));border:var(--size) solid transparent;border-top:var(--size) solid var(--accent-color)}nav.svelte-1twf6mk a.svelte-1twf6mk{display:flex;height:100%;align-items:center;padding:0 1em;color:var(--heading-color);font-weight:700;font-size:0.8rem;text-transform:uppercase;letter-spacing:10%;text-decoration:none;transition:color 0.2s linear}a.svelte-1twf6mk.svelte-1twf6mk:hover{color:var(--accent-color)}",
-  map: `{"version":3,"file":"index.svelte","sources":["index.svelte"],"sourcesContent":["<script>\\n\\timport { page } from '$app/stores';\\n\\timport logo from './svelte-logo.svg';\\n</script>\\n\\n<header>\\n\\t<div class=\\"corner\\">\\n\\t\\t<a href=\\"https://kit.svelte.dev\\">\\n\\t\\t\\t<img src={logo} alt=\\"SvelteKit\\" />\\n\\t\\t</a>\\n\\t</div>\\n\\n\\t<nav>\\n\\t\\t<svg viewBox=\\"0 0 2 3\\" aria-hidden=\\"true\\">\\n\\t\\t\\t<path d=\\"M0,0 L1,2 C1.5,3 1.5,3 2,3 L2,0 Z\\" />\\n\\t\\t</svg>\\n\\t\\t<ul>\\n\\t\\t\\t<li class:active={$page.path === '/'}><a sveltekit:prefetch href=\\"/\\">Home</a></li>\\n\\t\\t\\t<li class:active={$page.path === '/about'}><a sveltekit:prefetch href=\\"/about\\">About</a></li>\\n\\t\\t\\t<li class:active={$page.path === '/todos'}><a sveltekit:prefetch href=\\"/todos\\">Todos</a></li>\\n\\t\\t</ul>\\n\\t\\t<svg viewBox=\\"0 0 2 3\\" aria-hidden=\\"true\\">\\n\\t\\t\\t<path d=\\"M0,0 L0,3 C0.5,3 0.5,3 1,2 L2,0 Z\\" />\\n\\t\\t</svg>\\n\\t</nav>\\n\\n\\t<div class=\\"corner\\">\\n\\t\\t<!-- TODO put something else here? github link? -->\\n\\t</div>\\n</header>\\n\\n<style>\\n\\theader {\\n\\t\\tdisplay: flex;\\n\\t\\tjustify-content: space-between;\\n\\t}\\n\\n\\t.corner {\\n\\t\\twidth: 3em;\\n\\t\\theight: 3em;\\n\\t}\\n\\n\\t.corner a {\\n\\t\\tdisplay: flex;\\n\\t\\talign-items: center;\\n\\t\\tjustify-content: center;\\n\\t\\twidth: 100%;\\n\\t\\theight: 100%;\\n\\t}\\n\\n\\t.corner img {\\n\\t\\twidth: 2em;\\n\\t\\theight: 2em;\\n\\t\\tobject-fit: contain;\\n\\t}\\n\\n\\tnav {\\n\\t\\tdisplay: flex;\\n\\t\\tjustify-content: center;\\n\\t\\t--background: rgba(255, 255, 255, 0.7);\\n\\t}\\n\\n\\tsvg {\\n\\t\\twidth: 2em;\\n\\t\\theight: 3em;\\n\\t\\tdisplay: block;\\n\\t}\\n\\n\\tpath {\\n\\t\\tfill: var(--background);\\n\\t}\\n\\n\\tul {\\n\\t\\tposition: relative;\\n\\t\\tpadding: 0;\\n\\t\\tmargin: 0;\\n\\t\\theight: 3em;\\n\\t\\tdisplay: flex;\\n\\t\\tjustify-content: center;\\n\\t\\talign-items: center;\\n\\t\\tlist-style: none;\\n\\t\\tbackground: var(--background);\\n\\t\\tbackground-size: contain;\\n\\t}\\n\\n\\tli {\\n\\t\\tposition: relative;\\n\\t\\theight: 100%;\\n\\t}\\n\\n\\tli.active::before {\\n\\t\\t--size: 6px;\\n\\t\\tcontent: '';\\n\\t\\twidth: 0;\\n\\t\\theight: 0;\\n\\t\\tposition: absolute;\\n\\t\\ttop: 0;\\n\\t\\tleft: calc(50% - var(--size));\\n\\t\\tborder: var(--size) solid transparent;\\n\\t\\tborder-top: var(--size) solid var(--accent-color);\\n\\t}\\n\\n\\tnav a {\\n\\t\\tdisplay: flex;\\n\\t\\theight: 100%;\\n\\t\\talign-items: center;\\n\\t\\tpadding: 0 1em;\\n\\t\\tcolor: var(--heading-color);\\n\\t\\tfont-weight: 700;\\n\\t\\tfont-size: 0.8rem;\\n\\t\\ttext-transform: uppercase;\\n\\t\\tletter-spacing: 10%;\\n\\t\\ttext-decoration: none;\\n\\t\\ttransition: color 0.2s linear;\\n\\t}\\n\\n\\ta:hover {\\n\\t\\tcolor: var(--accent-color);\\n\\t}\\n</style>\\n"],"names":[],"mappings":"AAgCC,MAAM,8BAAC,CAAC,AACP,OAAO,CAAE,IAAI,CACb,eAAe,CAAE,aAAa,AAC/B,CAAC,AAED,OAAO,8BAAC,CAAC,AACR,KAAK,CAAE,GAAG,CACV,MAAM,CAAE,GAAG,AACZ,CAAC,AAED,sBAAO,CAAC,CAAC,eAAC,CAAC,AACV,OAAO,CAAE,IAAI,CACb,WAAW,CAAE,MAAM,CACnB,eAAe,CAAE,MAAM,CACvB,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,AACb,CAAC,AAED,sBAAO,CAAC,GAAG,eAAC,CAAC,AACZ,KAAK,CAAE,GAAG,CACV,MAAM,CAAE,GAAG,CACX,UAAU,CAAE,OAAO,AACpB,CAAC,AAED,GAAG,8BAAC,CAAC,AACJ,OAAO,CAAE,IAAI,CACb,eAAe,CAAE,MAAM,CACvB,YAAY,CAAE,wBAAwB,AACvC,CAAC,AAED,GAAG,8BAAC,CAAC,AACJ,KAAK,CAAE,GAAG,CACV,MAAM,CAAE,GAAG,CACX,OAAO,CAAE,KAAK,AACf,CAAC,AAED,IAAI,8BAAC,CAAC,AACL,IAAI,CAAE,IAAI,YAAY,CAAC,AACxB,CAAC,AAED,EAAE,8BAAC,CAAC,AACH,QAAQ,CAAE,QAAQ,CAClB,OAAO,CAAE,CAAC,CACV,MAAM,CAAE,CAAC,CACT,MAAM,CAAE,GAAG,CACX,OAAO,CAAE,IAAI,CACb,eAAe,CAAE,MAAM,CACvB,WAAW,CAAE,MAAM,CACnB,UAAU,CAAE,IAAI,CAChB,UAAU,CAAE,IAAI,YAAY,CAAC,CAC7B,eAAe,CAAE,OAAO,AACzB,CAAC,AAED,EAAE,8BAAC,CAAC,AACH,QAAQ,CAAE,QAAQ,CAClB,MAAM,CAAE,IAAI,AACb,CAAC,AAED,EAAE,qCAAO,QAAQ,AAAC,CAAC,AAClB,MAAM,CAAE,GAAG,CACX,OAAO,CAAE,EAAE,CACX,KAAK,CAAE,CAAC,CACR,MAAM,CAAE,CAAC,CACT,QAAQ,CAAE,QAAQ,CAClB,GAAG,CAAE,CAAC,CACN,IAAI,CAAE,KAAK,GAAG,CAAC,CAAC,CAAC,IAAI,MAAM,CAAC,CAAC,CAC7B,MAAM,CAAE,IAAI,MAAM,CAAC,CAAC,KAAK,CAAC,WAAW,CACrC,UAAU,CAAE,IAAI,MAAM,CAAC,CAAC,KAAK,CAAC,IAAI,cAAc,CAAC,AAClD,CAAC,AAED,kBAAG,CAAC,CAAC,eAAC,CAAC,AACN,OAAO,CAAE,IAAI,CACb,MAAM,CAAE,IAAI,CACZ,WAAW,CAAE,MAAM,CACnB,OAAO,CAAE,CAAC,CAAC,GAAG,CACd,KAAK,CAAE,IAAI,eAAe,CAAC,CAC3B,WAAW,CAAE,GAAG,CAChB,SAAS,CAAE,MAAM,CACjB,cAAc,CAAE,SAAS,CACzB,cAAc,CAAE,GAAG,CACnB,eAAe,CAAE,IAAI,CACrB,UAAU,CAAE,KAAK,CAAC,IAAI,CAAC,MAAM,AAC9B,CAAC,AAED,+BAAC,MAAM,AAAC,CAAC,AACR,KAAK,CAAE,IAAI,cAAc,CAAC,AAC3B,CAAC"}`
-};
 var Header = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let $page, $$unsubscribe_page;
-  $$unsubscribe_page = subscribe(page, (value) => $page = value);
-  $$result.css.add(css$5);
-  $$unsubscribe_page();
-  return `<header class="${"svelte-1twf6mk"}"><div class="${"corner svelte-1twf6mk"}"><a href="${"https://kit.svelte.dev"}" class="${"svelte-1twf6mk"}"><img${add_attribute("src", logo, 0)} alt="${"SvelteKit"}" class="${"svelte-1twf6mk"}"></a></div>
-
-	<nav class="${"svelte-1twf6mk"}"><svg viewBox="${"0 0 2 3"}" aria-hidden="${"true"}" class="${"svelte-1twf6mk"}"><path d="${"M0,0 L1,2 C1.5,3 1.5,3 2,3 L2,0 Z"}" class="${"svelte-1twf6mk"}"></path></svg>
-		<ul class="${"svelte-1twf6mk"}"><li class="${["svelte-1twf6mk", $page.path === "/" ? "active" : ""].join(" ").trim()}"><a sveltekit:prefetch href="${"/"}" class="${"svelte-1twf6mk"}">Home</a></li>
-			<li class="${["svelte-1twf6mk", $page.path === "/about" ? "active" : ""].join(" ").trim()}"><a sveltekit:prefetch href="${"/about"}" class="${"svelte-1twf6mk"}">About</a></li>
-			<li class="${["svelte-1twf6mk", $page.path === "/todos" ? "active" : ""].join(" ").trim()}"><a sveltekit:prefetch href="${"/todos"}" class="${"svelte-1twf6mk"}">Todos</a></li></ul>
-		<svg viewBox="${"0 0 2 3"}" aria-hidden="${"true"}" class="${"svelte-1twf6mk"}"><path d="${"M0,0 L0,3 C0.5,3 0.5,3 1,2 L2,0 Z"}" class="${"svelte-1twf6mk"}"></path></svg></nav>
-
-	<div class="${"corner svelte-1twf6mk"}"></div>
-</header>`;
+  return `<header><div class="${"absolute z2"}" style="${"top: 0.5em; right: 1em;"}"><a href="${"https://maop.fr/"}"><svg data-name="${"Logo MAOP"}" xmlns="${"http://www.w3.org/2000/svg"}" width="${"70.56mm"}" height="${"70.6mm"}" viewBox="${"0 0 200 200.12"}"><title>logo-maop</title><path d="${"M106.51,5.93a6,6,0,0,1-12,0h0a6,6,0,0,1,12,0Z"}"></path><path d="${"M63.56,31.38a6,6,0,0,1-12,0h0a6,6,0,0,1,12,0Z"}"></path><path d="${"M149.22,31.38a6,6,0,0,1-12,0h0a6,6,0,0,1,12,0Z"}"></path><path d="${"M174.29,57.47a6,6,0,0,1-12,0h0a6,6,0,0,1,12,0Z"}"></path><path d="${"M200,99.79a6,6,0,0,1-12,0h0a6,6,0,0,1,12,0Z"}"></path><path d="${"M173.68,142.29a6,6,0,0,1-12,0v0a6,6,0,0,1,12,0Z"}"></path><path d="${"M149.21,167.61a6,6,0,0,1-12,0h0a6,6,0,0,1,12,0Z"}"></path><path d="${"M105.52,194.21a6,6,0,0,1-12,0h0a6,6,0,0,1,12,0Z"}"></path><path d="${"M63.17,167.61a6,6,0,0,1-12,0h0a6,6,0,0,1,12,0Z"}"></path><path d="${"M39,142.3a6,6,0,0,1-12,0h0a6,6,0,0,1,12,0Z"}"></path><path d="${"M12,99.93a6,6,0,0,1-6,5.91,6,6,0,0,1-6-5.92H0A6,6,0,0,1,6,94a6,6,0,0,1,6,5.92h0"}"></path><path d="${"M38.67,57.54a6,6,0,0,1-12,0h0a6,6,0,0,1,12,0Z"}"></path></svg></a></div>
+  <div class="${"relative z10 p0111"}">${slots.default ? slots.default({}) : ``}</div></header>`;
 });
-var css$4 = {
-  code: "main.svelte-1izrdc8.svelte-1izrdc8{flex:1;display:flex;flex-direction:column;padding:1rem;width:100%;max-width:1024px;margin:0 auto;box-sizing:border-box}footer.svelte-1izrdc8.svelte-1izrdc8{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px}footer.svelte-1izrdc8 a.svelte-1izrdc8{font-weight:bold}@media(min-width: 480px){footer.svelte-1izrdc8.svelte-1izrdc8{padding:40px 0}}",
-  map: `{"version":3,"file":"__layout.svelte","sources":["__layout.svelte"],"sourcesContent":["<script>\\n\\timport Header from '$lib/Header/index.svelte';\\n\\timport '../app.css';\\n</script>\\n\\n<Header />\\n\\n<main>\\n\\t<slot />\\n</main>\\n\\n<footer>\\n\\t<p>visit <a href=\\"https://kit.svelte.dev\\">kit.svelte.dev</a> to learn SvelteKit</p>\\n</footer>\\n\\n<style>\\n\\tmain {\\n\\t\\tflex: 1;\\n\\t\\tdisplay: flex;\\n\\t\\tflex-direction: column;\\n\\t\\tpadding: 1rem;\\n\\t\\twidth: 100%;\\n\\t\\tmax-width: 1024px;\\n\\t\\tmargin: 0 auto;\\n\\t\\tbox-sizing: border-box;\\n\\t}\\n\\n\\tfooter {\\n\\t\\tdisplay: flex;\\n\\t\\tflex-direction: column;\\n\\t\\tjustify-content: center;\\n\\t\\talign-items: center;\\n\\t\\tpadding: 40px;\\n\\t}\\n\\n\\tfooter a {\\n\\t\\tfont-weight: bold;\\n\\t}\\n\\n\\t@media (min-width: 480px) {\\n\\t\\tfooter {\\n\\t\\t\\tpadding: 40px 0;\\n\\t\\t}\\n\\t}\\n</style>\\n"],"names":[],"mappings":"AAgBC,IAAI,8BAAC,CAAC,AACL,IAAI,CAAE,CAAC,CACP,OAAO,CAAE,IAAI,CACb,cAAc,CAAE,MAAM,CACtB,OAAO,CAAE,IAAI,CACb,KAAK,CAAE,IAAI,CACX,SAAS,CAAE,MAAM,CACjB,MAAM,CAAE,CAAC,CAAC,IAAI,CACd,UAAU,CAAE,UAAU,AACvB,CAAC,AAED,MAAM,8BAAC,CAAC,AACP,OAAO,CAAE,IAAI,CACb,cAAc,CAAE,MAAM,CACtB,eAAe,CAAE,MAAM,CACvB,WAAW,CAAE,MAAM,CACnB,OAAO,CAAE,IAAI,AACd,CAAC,AAED,qBAAM,CAAC,CAAC,eAAC,CAAC,AACT,WAAW,CAAE,IAAI,AAClB,CAAC,AAED,MAAM,AAAC,YAAY,KAAK,CAAC,AAAC,CAAC,AAC1B,MAAM,8BAAC,CAAC,AACP,OAAO,CAAE,IAAI,CAAC,CAAC,AAChB,CAAC,AACF,CAAC"}`
-};
+var Subscribe = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  return `<footer><div class="${"bc fixed b0 r0 z200 m600-l0 center"}"><button class="${"p251251 " + escape2("")}">+++Abonnement \xE0 <i>Plan Libre</i> 25\u20AC+++
+    </button>
+    ${``}</div></footer>`;
+});
+var Logo = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  return `<div class="${"mb5 p"}"><svg xmlns="${"http://www.w3.org/2000/svg"}" viewBox="${"0 0 561.2 242.4"}"><g><path clipPath="${"url(#d)"}" d="${"M455.3 68.4c0 4 3.3 7.1 7.1 7.1 4 0 7.1-3.1 7.1-7.1 0-3.9-3.1-7-7.1-7-3.8 0-7.1 3.1-7.1 7m-5.1-27.7c0 3.9 3.1 7.1 7.1 7.1 3.9 0 7.1-3.3 7.1-7.1 0-4-3.3-7.1-7.1-7.1-3.9-.1-7.1 3.1-7.1 7.1m30.4-28.2c0 4 3.1 7.1 7 7.1 4 0 7.1-3.1 7.1-7.1 0-3.9-3.1-7-7.1-7-3.9.1-7 3.2-7 7m0 28.2c0 3.9 3.1 7.1 7 7.1 4 0 7.1-3.3 7.1-7.1 0-4-3.1-7.1-7.1-7.1-3.9-.1-7 3.1-7 7.1m0 27.7c0 4 3.1 7.1 7 7.1 4 0 7.1-3.1 7.1-7.1 0-3.9-3.1-7-7.1-7-3.9 0-7 3.1-7 7m0 27.4c0 4 3.1 7.1 7 7.1 4 0 7.1-3.1 7.1-7.1 0-3.9-3.1-7.1-7.1-7.1-3.9-.1-7 3.2-7 7.1m-56-83.3c0 4 3.1 7.1 7.1 7.1 3.9 0 7.1-3.1 7.1-7.1 0-3.9-3.3-7-7.1-7-3.9.1-7.1 3.2-7.1 7m0 28.2c0 3.9 3.1 7.1 7.1 7.1 3.9 0 7.1-3.3 7.1-7.1 0-4-3.3-7.1-7.1-7.1-3.9-.1-7.1 3.1-7.1 7.1m0 27.7c0 4 3.1 7.1 7.1 7.1 3.9 0 7.1-3.1 7.1-7.1 0-3.9-3.3-7-7.1-7-3.9 0-7.1 3.1-7.1 7m0 27.4c0 4 3.1 7.1 7.1 7.1 3.9 0 7.1-3.1 7.1-7.1 0-3.9-3.3-7.1-7.1-7.1-3.9-.1-7.1 3.2-7.1 7.1m-57.1 0c0 4 3.3 7.1 7.1 7.1 4 0 7.1-3.1 7.1-7.1 0-3.9-3.1-7.1-7.1-7.1-3.8-.1-7.1 3.2-7.1 7.1m-70.9 0c0 4 3.1 7.1 7.1 7.1 3.9 0 7.1-3.1 7.1-7.1 0-3.9-3.3-7.1-7.1-7.1-3.9-.1-7.1 3.2-7.1 7.1m59.1-27.9c0 3.9 3.1 7.1 7.1 7.1 3.9 0 7.1-3.3 7.1-7.1s-3.3-7.1-7.1-7.1c-3.9 0-7.1 3.3-7.1 7.1m-47.3 0c0 3.9 3.3 7.1 7.1 7.1 4 0 7.1-3.3 7.1-7.1s-3.1-7.1-7.1-7.1c-3.8 0-7.1 3.3-7.1 7.1M344 40.1c0 3.9 3.1 7.1 7 7.1 4 0 7.1-3.3 7.1-7.1 0-4-3.1-7.1-7.1-7.1-3.9-.1-7 3.1-7 7.1m-23.7 0c0 3.9 3.1 7.1 7.1 7.1 3.9 0 7-3.3 7-7.1 0-4-3.1-7.1-7-7.1-4-.1-7.1 3.1-7.1 7.1m11.9 41.8c0 3.9 3.1 7.1 7 7.1 4 0 7.1-3.3 7.1-7.1 0-4-3.1-7.1-7.1-7.1-3.9 0-7 3.1-7 7.1m0-69.6c0 3.9 3.1 7.1 7 7.1 4 0 7.1-3.3 7.1-7.1 0-4-3.1-7.1-7.1-7.1-3.9-.1-7 3-7 7.1m-92.8 83.5c0 4 3.1 7.1 7 7.1 4 0 7.1-3.1 7.1-7.1 0-3.9-3.1-7.1-7.1-7.1-3.9-.1-7 3.2-7 7.1m-27.9 0c0 4 3.3 7.1 7.1 7.1s7.1-3.1 7.1-7.1c0-3.9-3.3-7.1-7.1-7.1s-7.1 3.2-7.1 7.1m-27.8-83.1c0 3.9 3.1 7.1 7.1 7.1 3.9 0 7.1-3.3 7.1-7.1s-3.3-7.1-7.1-7.1c-4 0-7.1 3.2-7.1 7.1m.1 27.7c0 3.9 3.1 7.1 7.1 7.1 3.9 0 7-3.3 7-7.1 0-3.9-3.1-7.1-7-7.1-3.9-.1-7.1 3.2-7.1 7.1m0 27.7c0 4 3.1 7.1 7.1 7.1 3.9 0 7-3.1 7-7.1 0-3.9-3.1-7.1-7-7.1-3.9-.1-7.1 3.2-7.1 7.1m0 27.7c0 4 3.1 7.1 7.1 7.1 3.9 0 7-3.1 7-7.1 0-3.9-3.1-7.1-7-7.1-3.9-.1-7.1 3.2-7.1 7.1m-64.3-72.7c0 4 3.1 7.1 7.1 7.1 3.9 0 7.1-3.1 7.1-7.1 0-3.9-3.3-7-7.1-7-4 0-7.1 3.1-7.1 7m0 24.9c0 4 3.1 7.1 7.1 7.1 3.9 0 7.1-3.1 7.1-7.1 0-3.9-3.3-7.1-7.1-7.1-4-.1-7.1 3.2-7.1 7.1m-24.6 6.2c0 4 3.3 7.1 7.1 7.1 4 0 7.1-3.1 7.1-7.1 0-3.9-3.1-7.1-7.1-7.1-3.8 0-7.1 3.3-7.1 7.1m0-41.5c0 3.9 3.3 7.1 7.1 7.1 4 0 7.1-3.3 7.1-7.1S106 5.6 102 5.6c-3.8 0-7.1 3.2-7.1 7.1m-23.8 0c0 3.9 3.1 7.1 7.1 7.1 3.9 0 7.1-3.3 7.1-7.1S82 5.6 78.2 5.6c-4 0-7.1 3.2-7.1 7.1m0 27.7c0 4 3.1 7.1 7.1 7.1 3.9 0 7.1-3.1 7.1-7.1 0-3.9-3.3-7.1-7.1-7.1-4-.1-7.1 3.2-7.1 7.1m0 27.7c0 4 3.1 7.1 7.1 7.1 3.9 0 7.1-3.1 7.1-7.1 0-3.9-3.3-7.1-7.1-7.1-4-.1-7.1 3.2-7.1 7.1m0 27.7c0 4 3.1 7.1 7.1 7.1 3.9 0 7.1-3.1 7.1-7.1 0-3.9-3.3-7.1-7.1-7.1-4-.1-7.1 3.2-7.1 7.1M541.1 231.8c0 4 3.3 7.2 7.2 7.2 4 0 7.2-3.1 7.2-7.2 0-3.9-3.1-7.2-7.2-7.2-3.9 0-7.2 3.3-7.2 7.2m0-83.6c0 4 3.3 7.2 7.2 7.2 4 0 7.2-3.1 7.2-7.2 0-3.9-3.1-7-7.2-7-3.9 0-7.2 3.1-7.2 7m-27.4 83.6c0 4 3.3 7.2 7.2 7.2 4 0 7.2-3.1 7.2-7.2 0-3.9-3.1-7.2-7.2-7.2-3.9 0-7.2 3.3-7.2 7.2m0-41.4c0 3.9 3.3 7.2 7.2 7.2 4 0 7.2-3.3 7.2-7.2 0-4-3.1-7.2-7.2-7.2-3.9 0-7.2 3.1-7.2 7.2m0-42.2c0 4 3.3 7.2 7.2 7.2 4 0 7.2-3.1 7.2-7.2 0-3.9-3.1-7-7.2-7-3.9 0-7.2 3.1-7.2 7m-27 0c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7-7.2-7-4.1 0-7.2 3.1-7.2 7m0 28.3c0 3.9 3.1 7.2 7.2 7.2 3.9 0 7.2-3.3 7.2-7.2 0-4-3.3-7.2-7.2-7.2-4.1 0-7.2 3.1-7.2 7.2m0 27.8c0 3.9 3.1 7.2 7.2 7.2 3.9 0 7.2-3.3 7.2-7.2 0-4-3.3-7.2-7.2-7.2-4.1 0-7.2 3.1-7.2 7.2m0 27.5c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4.1 0-7.2 3.3-7.2 7.2m-65.8 0c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4.1 0-7.2 3.3-7.2 7.2m-15-19.5c0 3.9 3.3 7 7.2 7 4 0 7.2-3.1 7.2-7 0-4-3.1-7.2-7.2-7.2-3.9.1-7.2 3.2-7.2 7.2m8.3-53.5c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7-7.2-7-4.1 0-7.2 3.1-7.2 7m0 25c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4.1 0-7.2 3.3-7.2 7.2m-24.7 6.3c0 4 3.3 7.2 7.2 7.2 4 0 7.2-3.1 7.2-7.2 0-3.9-3.1-7.2-7.2-7.2-3.9 0-7.2 3.3-7.2 7.2m0-41.8c0 3.9 3.3 7.2 7.2 7.2 4 0 7.2-3.3 7.2-7.2s-3.1-7.2-7.2-7.2c-3.9.1-7.2 3.4-7.2 7.2m-23.9 0c0 3.9 3.1 7.2 7.2 7.2 3.9 0 7.2-3.3 7.2-7.2s-3.3-7.2-7.2-7.2c-4.1.1-7.2 3.4-7.2 7.2m0 27.9c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4.1 0-7.2 3.3-7.2 7.2m0 27.8c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4.1 0-7.2 3.3-7.2 7.2m0 27.8c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4.1 0-7.2 3.3-7.2 7.2m-74.8-73c0 4 3.3 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7-7.2-7-3.9 0-7.2 3.1-7.2 7m0 25c0 4 3.3 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-3.9 0-7.2 3.3-7.2 7.2m8 23.3c0 3.9 3.1 7.2 7.2 7.2 3.9 0 7.2-3.3 7.2-7.2 0-4-3.3-7.2-7.2-7.2-4.1 0-7.2 3.2-7.2 7.2m-8 22.7c0 4 3.3 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-3.9.1-7.2 3.4-7.2 7.2m-24.6 2c0 4 3.3 7.2 7.2 7.2 4 0 7.2-3.1 7.2-7.2 0-3.9-3.1-7.2-7.2-7.2-3.9 0-7.2 3.3-7.2 7.2m0-41.7c0 4 3.3 7.2 7.2 7.2 4 0 7.2-3.1 7.2-7.2 0-3.9-3.1-7.2-7.2-7.2-3.9 0-7.2 3.3-7.2 7.2m0-41.8c0 3.9 3.3 7.2 7.2 7.2 4 0 7.2-3.3 7.2-7.2s-3.1-7.2-7.2-7.2c-3.9.1-7.2 3.4-7.2 7.2m-24 0c0 3.9 3.1 7.2 7.2 7.2 3.9 0 7.2-3.3 7.2-7.2s-3.3-7.2-7.2-7.2c-4 .1-7.2 3.4-7.2 7.2m0 27.9c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4 0-7.2 3.3-7.2 7.2m0 27.8c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4 0-7.2 3.3-7.2 7.2m0 27.8c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4 0-7.2 3.3-7.2 7.2m-68.9-83.5c0 3.9 3.1 7.2 7.2 7.2 3.9 0 7.2-3.3 7.2-7.2s-3.3-7.2-7.2-7.2c-4.1.1-7.2 3.4-7.2 7.2m0 83.5c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4.1 0-7.2 3.3-7.2 7.2m-54-83.5c0 3.9 3.1 7.2 7.2 7.2 3.9 0 7.2-3.3 7.2-7.2s-3.3-7.2-7.2-7.2c-4.1.1-7.2 3.4-7.2 7.2m0 83.5c0 4 3.1 7.2 7.2 7.2 3.9 0 7.2-3.1 7.2-7.2 0-3.9-3.3-7.2-7.2-7.2-4.1 0-7.2 3.3-7.2 7.2m26.9-83.5c0 3.9 3.3 7.2 7.2 7.2 4 0 7.2-3.3 7.2-7.2s-3.1-7.2-7.2-7.2c-3.9.1-7.2 3.4-7.2 7.2m0 27.9c0 3.9 3.3 7.2 7.2 7.2 4 0 7.2-3.3 7.2-7.2s-3.1-7.2-7.2-7.2c-3.9 0-7.2 3.3-7.2 7.2m0 27.8c0 4 3.3 7.2 7.2 7.2 4 0 7.2-3.1 7.2-7.2 0-3.9-3.1-7.2-7.2-7.2-3.9 0-7.2 3.3-7.2 7.2m0 27.8c0 4 3.3 7.2 7.2 7.2 4 0 7.2-3.1 7.2-7.2 0-3.9-3.1-7.2-7.2-7.2-3.9 0-7.2 3.3-7.2 7.2m-84.4 0c0 4 3.1 7.2 7 7.2 4 0 7.2-3.1 7.2-7.2 0-3.9-3.1-7.2-7.2-7.2-3.9 0-7 3.3-7 7.2m-28 0c0 4 3.3 7.2 7.2 7.2s7.2-3.1 7.2-7.2c0-3.9-3.3-7.2-7.2-7.2s-7.2 3.3-7.2 7.2m-28-83.5c0 3.9 3.1 7.2 7.2 7.2 3.9 0 7.2-3.3 7.2-7.2s-3.3-7.2-7.2-7.2c-4 .1-7.2 3.4-7.2 7.2m.2 27.9c0 3.9 3.1 7.2 7.2 7.2 3.9 0 7-3.3 7-7.2s-3.1-7.2-7-7.2c-4.1 0-7.2 3.3-7.2 7.2M6 204c0 4 3.1 7.2 7.2 7.2 3.9 0 7-3.1 7-7.2 0-3.9-3.1-7.2-7-7.2-4.1 0-7.2 3.3-7.2 7.2m0 27.8c0 4 3.1 7.2 7.2 7.2 3.9 0 7-3.1 7-7.2 0-3.9-3.1-7.2-7-7.2-4.1 0-7.2 3.3-7.2 7.2"}"></path></g></svg></div>`;
+});
+var prerender$1 = true;
+var router$1 = false;
+async function load$2({fetch: fetch3}) {
+  const res = await fetch3("https://pl.maop.fr/wp-json/wp/v2/pages");
+  return {props: {posts: await res.json()}};
+}
 var _layout = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  $$result.css.add(css$4);
-  return `${validate_component(Header, "Header").$$render($$result, {}, {}, {})}
-
-<main class="${"svelte-1izrdc8"}">${slots.default ? slots.default({}) : ``}</main>
-
-<footer class="${"svelte-1izrdc8"}"><p>visit <a href="${"https://kit.svelte.dev"}" class="${"svelte-1izrdc8"}">kit.svelte.dev</a> to learn SvelteKit</p>
-</footer>`;
+  let {posts} = $$props;
+  if ($$props.posts === void 0 && $$bindings.posts && posts !== void 0)
+    $$bindings.posts(posts);
+  return `${validate_component(Header, "Header").$$render($$result, {}, {}, {
+    default: () => `${each(posts, (post) => `${post.slug === "header" ? `${post.content.rendered}` : ``}`)}`
+  })}
+	${slots.default ? slots.default({}) : ``}
+	${validate_component(Logo, "Logo").$$render($$result, {}, {}, {})}
+  ${validate_component(Subscribe, "Subscribe").$$render($$result, {}, {}, {
+    default: () => `${each(posts, (post) => `${post.slug === "subscribe" ? `${post.content.rendered}` : ``}`)}`
+  })}`;
 });
 var __layout = /* @__PURE__ */ Object.freeze({
   __proto__: null,
   [Symbol.toStringTag]: "Module",
-  "default": _layout
+  "default": _layout,
+  prerender: prerender$1,
+  router: router$1,
+  load: load$2
 });
 function load$1({error: error22, status}) {
   return {props: {error: error22, status}};
 }
-var Error$1 = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+var Error2 = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let {status} = $$props;
   let {error: error22} = $$props;
   if ($$props.status === void 0 && $$bindings.status && status !== void 0)
@@ -3088,140 +2824,91 @@ ${error22.stack ? `<pre>${escape2(error22.stack)}</pre>` : ``}`;
 var error2 = /* @__PURE__ */ Object.freeze({
   __proto__: null,
   [Symbol.toStringTag]: "Module",
-  "default": Error$1,
+  "default": Error2,
   load: load$1
 });
-var css$3 = {
-  code: ".counter.svelte-ltn89m.svelte-ltn89m{display:flex;border-top:1px solid rgba(0, 0, 0, 0.1);border-bottom:1px solid rgba(0, 0, 0, 0.1);margin:1rem 0}.counter.svelte-ltn89m button.svelte-ltn89m{width:2em;padding:0;display:flex;align-items:center;justify-content:center;border:0;background-color:transparent;color:var(--text-color);font-size:2rem}.counter.svelte-ltn89m button.svelte-ltn89m:hover{background-color:var(--secondary-color)}svg.svelte-ltn89m.svelte-ltn89m{width:25%;height:25%}path.svelte-ltn89m.svelte-ltn89m{vector-effect:non-scaling-stroke;stroke-width:2px;stroke:var(--text-color)}.counter-viewport.svelte-ltn89m.svelte-ltn89m{width:8em;height:4em;overflow:hidden;text-align:center;position:relative}.counter-viewport.svelte-ltn89m strong.svelte-ltn89m{position:absolute;display:block;width:100%;height:100%;font-weight:400;color:var(--accent-color);font-size:4rem;display:flex;align-items:center;justify-content:center}.counter-digits.svelte-ltn89m.svelte-ltn89m{position:absolute;width:100%;height:100%}",
-  map: `{"version":3,"file":"index.svelte","sources":["index.svelte"],"sourcesContent":["<script>\\n\\timport { spring } from 'svelte/motion';\\n\\n\\tlet count = 0;\\n\\n\\tconst displayed_count = spring();\\n\\t$: displayed_count.set(count);\\n\\t$: offset = modulo($displayed_count, 1);\\n\\n\\tfunction modulo(n, m) {\\n\\t\\t// handle negative numbers\\n\\t\\treturn ((n % m) + m) % m;\\n\\t}\\n</script>\\n\\n<div class=\\"counter\\">\\n\\t<button on:click={() => (count -= 1)} aria-label=\\"Decrease the counter by one\\">\\n\\t\\t<svg aria-hidden=\\"true\\" viewBox=\\"0 0 1 1\\">\\n\\t\\t\\t<path d=\\"M0,0.5 L1,0.5\\" />\\n\\t\\t</svg>\\n\\t</button>\\n\\n\\t<div class=\\"counter-viewport\\">\\n\\t\\t<div class=\\"counter-digits\\" style=\\"transform: translate(0, {100 * offset}%)\\">\\n\\t\\t\\t<strong style=\\"top: -100%\\" aria-hidden=\\"true\\">{Math.floor($displayed_count + 1)}</strong>\\n\\t\\t\\t<strong>{Math.floor($displayed_count)}</strong>\\n\\t\\t</div>\\n\\t</div>\\n\\n\\t<button on:click={() => (count += 1)} aria-label=\\"Increase the counter by one\\">\\n\\t\\t<svg aria-hidden=\\"true\\" viewBox=\\"0 0 1 1\\">\\n\\t\\t\\t<path d=\\"M0,0.5 L1,0.5 M0.5,0 L0.5,1\\" />\\n\\t\\t</svg>\\n\\t</button>\\n</div>\\n\\n<style>\\n\\t.counter {\\n\\t\\tdisplay: flex;\\n\\t\\tborder-top: 1px solid rgba(0, 0, 0, 0.1);\\n\\t\\tborder-bottom: 1px solid rgba(0, 0, 0, 0.1);\\n\\t\\tmargin: 1rem 0;\\n\\t}\\n\\n\\t.counter button {\\n\\t\\twidth: 2em;\\n\\t\\tpadding: 0;\\n\\t\\tdisplay: flex;\\n\\t\\talign-items: center;\\n\\t\\tjustify-content: center;\\n\\t\\tborder: 0;\\n\\t\\tbackground-color: transparent;\\n\\t\\tcolor: var(--text-color);\\n\\t\\tfont-size: 2rem;\\n\\t}\\n\\n\\t.counter button:hover {\\n\\t\\tbackground-color: var(--secondary-color);\\n\\t}\\n\\n\\tsvg {\\n\\t\\twidth: 25%;\\n\\t\\theight: 25%;\\n\\t}\\n\\n\\tpath {\\n\\t\\tvector-effect: non-scaling-stroke;\\n\\t\\tstroke-width: 2px;\\n\\t\\tstroke: var(--text-color);\\n\\t}\\n\\n\\t.counter-viewport {\\n\\t\\twidth: 8em;\\n\\t\\theight: 4em;\\n\\t\\toverflow: hidden;\\n\\t\\ttext-align: center;\\n\\t\\tposition: relative;\\n\\t}\\n\\n\\t.counter-viewport strong {\\n\\t\\tposition: absolute;\\n\\t\\tdisplay: block;\\n\\t\\twidth: 100%;\\n\\t\\theight: 100%;\\n\\t\\tfont-weight: 400;\\n\\t\\tcolor: var(--accent-color);\\n\\t\\tfont-size: 4rem;\\n\\t\\tdisplay: flex;\\n\\t\\talign-items: center;\\n\\t\\tjustify-content: center;\\n\\t}\\n\\n\\t.counter-digits {\\n\\t\\tposition: absolute;\\n\\t\\twidth: 100%;\\n\\t\\theight: 100%;\\n\\t}\\n</style>\\n"],"names":[],"mappings":"AAqCC,QAAQ,4BAAC,CAAC,AACT,OAAO,CAAE,IAAI,CACb,UAAU,CAAE,GAAG,CAAC,KAAK,CAAC,KAAK,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,GAAG,CAAC,CACxC,aAAa,CAAE,GAAG,CAAC,KAAK,CAAC,KAAK,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,GAAG,CAAC,CAC3C,MAAM,CAAE,IAAI,CAAC,CAAC,AACf,CAAC,AAED,sBAAQ,CAAC,MAAM,cAAC,CAAC,AAChB,KAAK,CAAE,GAAG,CACV,OAAO,CAAE,CAAC,CACV,OAAO,CAAE,IAAI,CACb,WAAW,CAAE,MAAM,CACnB,eAAe,CAAE,MAAM,CACvB,MAAM,CAAE,CAAC,CACT,gBAAgB,CAAE,WAAW,CAC7B,KAAK,CAAE,IAAI,YAAY,CAAC,CACxB,SAAS,CAAE,IAAI,AAChB,CAAC,AAED,sBAAQ,CAAC,oBAAM,MAAM,AAAC,CAAC,AACtB,gBAAgB,CAAE,IAAI,iBAAiB,CAAC,AACzC,CAAC,AAED,GAAG,4BAAC,CAAC,AACJ,KAAK,CAAE,GAAG,CACV,MAAM,CAAE,GAAG,AACZ,CAAC,AAED,IAAI,4BAAC,CAAC,AACL,aAAa,CAAE,kBAAkB,CACjC,YAAY,CAAE,GAAG,CACjB,MAAM,CAAE,IAAI,YAAY,CAAC,AAC1B,CAAC,AAED,iBAAiB,4BAAC,CAAC,AAClB,KAAK,CAAE,GAAG,CACV,MAAM,CAAE,GAAG,CACX,QAAQ,CAAE,MAAM,CAChB,UAAU,CAAE,MAAM,CAClB,QAAQ,CAAE,QAAQ,AACnB,CAAC,AAED,+BAAiB,CAAC,MAAM,cAAC,CAAC,AACzB,QAAQ,CAAE,QAAQ,CAClB,OAAO,CAAE,KAAK,CACd,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,CACZ,WAAW,CAAE,GAAG,CAChB,KAAK,CAAE,IAAI,cAAc,CAAC,CAC1B,SAAS,CAAE,IAAI,CACf,OAAO,CAAE,IAAI,CACb,WAAW,CAAE,MAAM,CACnB,eAAe,CAAE,MAAM,AACxB,CAAC,AAED,eAAe,4BAAC,CAAC,AAChB,QAAQ,CAAE,QAAQ,CAClB,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,AACb,CAAC"}`
-};
-function modulo(n, m) {
-  return (n % m + m) % m;
-}
-var Counter = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let offset;
-  let $displayed_count, $$unsubscribe_displayed_count;
-  let count = 0;
-  const displayed_count = spring();
-  $$unsubscribe_displayed_count = subscribe(displayed_count, (value) => $displayed_count = value);
-  $$result.css.add(css$3);
-  {
-    displayed_count.set(count);
-  }
-  offset = modulo($displayed_count, 1);
-  $$unsubscribe_displayed_count();
-  return `<div class="${"counter svelte-ltn89m"}"><button aria-label="${"Decrease the counter by one"}" class="${"svelte-ltn89m"}"><svg aria-hidden="${"true"}" viewBox="${"0 0 1 1"}" class="${"svelte-ltn89m"}"><path d="${"M0,0.5 L1,0.5"}" class="${"svelte-ltn89m"}"></path></svg></button>
-
-	<div class="${"counter-viewport svelte-ltn89m"}"><div class="${"counter-digits svelte-ltn89m"}" style="${"transform: translate(0, " + escape2(100 * offset) + "%)"}"><strong style="${"top: -100%"}" aria-hidden="${"true"}" class="${"svelte-ltn89m"}">${escape2(Math.floor($displayed_count + 1))}</strong>
-			<strong class="${"svelte-ltn89m"}">${escape2(Math.floor($displayed_count))}</strong></div></div>
-
-	<button aria-label="${"Increase the counter by one"}" class="${"svelte-ltn89m"}"><svg aria-hidden="${"true"}" viewBox="${"0 0 1 1"}" class="${"svelte-ltn89m"}"><path d="${"M0,0.5 L1,0.5 M0.5,0 L0.5,1"}" class="${"svelte-ltn89m"}"></path></svg></button>
-</div>`;
+var Front = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  return `<aside class="${"pointer"}">${`<div class="${"fixed z100 t0 l0 r0 b0 flex jc-center ai-center"}">${slots.default ? slots.default({}) : ``}</div>`}</aside>`;
 });
-var css$2 = {
-  code: "section.svelte-mjk9ig.svelte-mjk9ig{display:flex;flex-direction:column;justify-content:center;align-items:center;flex:1}h1.svelte-mjk9ig.svelte-mjk9ig{width:100%}.welcome.svelte-mjk9ig.svelte-mjk9ig{position:relative;width:100%;height:0;padding:0 0 calc(100% * 495 / 2048) 0}.welcome.svelte-mjk9ig img.svelte-mjk9ig{position:absolute;width:100%;height:100%;top:0;display:block}",
-  map: `{"version":3,"file":"index.svelte","sources":["index.svelte"],"sourcesContent":["<script context=\\"module\\">\\n\\texport const prerender = true;\\n</script>\\n\\n<script>\\n\\timport Counter from '$lib/Counter/index.svelte';\\n</script>\\n\\n<svelte:head>\\n\\t<title>Home</title>\\n</svelte:head>\\n\\n<section>\\n\\t<h1>\\n\\t\\t<div class=\\"welcome\\">\\n\\t\\t\\t<picture>\\n\\t\\t\\t\\t<source srcset=\\"svelte-welcome.webp\\" type=\\"image/webp\\" />\\n\\t\\t\\t\\t<img src=\\"svelte-welcome.png\\" alt=\\"Welcome\\" />\\n\\t\\t\\t</picture>\\n\\t\\t</div>\\n\\n\\t\\tto your new<br />SvelteKit app\\n\\t</h1>\\n\\n\\t<h2>\\n\\t\\ttry editing <strong>src/routes/index.svelte</strong>\\n\\t</h2>\\n\\n\\t<Counter />\\n</section>\\n\\n<style>\\n\\tsection {\\n\\t\\tdisplay: flex;\\n\\t\\tflex-direction: column;\\n\\t\\tjustify-content: center;\\n\\t\\talign-items: center;\\n\\t\\tflex: 1;\\n\\t}\\n\\n\\th1 {\\n\\t\\twidth: 100%;\\n\\t}\\n\\n\\t.welcome {\\n\\t\\tposition: relative;\\n\\t\\twidth: 100%;\\n\\t\\theight: 0;\\n\\t\\tpadding: 0 0 calc(100% * 495 / 2048) 0;\\n\\t}\\n\\n\\t.welcome img {\\n\\t\\tposition: absolute;\\n\\t\\twidth: 100%;\\n\\t\\theight: 100%;\\n\\t\\ttop: 0;\\n\\t\\tdisplay: block;\\n\\t}\\n</style>\\n"],"names":[],"mappings":"AAgCC,OAAO,4BAAC,CAAC,AACR,OAAO,CAAE,IAAI,CACb,cAAc,CAAE,MAAM,CACtB,eAAe,CAAE,MAAM,CACvB,WAAW,CAAE,MAAM,CACnB,IAAI,CAAE,CAAC,AACR,CAAC,AAED,EAAE,4BAAC,CAAC,AACH,KAAK,CAAE,IAAI,AACZ,CAAC,AAED,QAAQ,4BAAC,CAAC,AACT,QAAQ,CAAE,QAAQ,CAClB,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,CAAC,CACT,OAAO,CAAE,CAAC,CAAC,CAAC,CAAC,KAAK,IAAI,CAAC,CAAC,CAAC,GAAG,CAAC,CAAC,CAAC,IAAI,CAAC,CAAC,CAAC,AACvC,CAAC,AAED,sBAAQ,CAAC,GAAG,cAAC,CAAC,AACb,QAAQ,CAAE,QAAQ,CAClB,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,IAAI,CACZ,GAAG,CAAE,CAAC,CACN,OAAO,CAAE,KAAK,AACf,CAAC"}`
-};
-var prerender$1 = true;
-var Routes = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  $$result.css.add(css$2);
-  return `${$$result.head += `${$$result.title = `<title>Home</title>`, ""}`, ""}
-
-<section class="${"svelte-mjk9ig"}"><h1 class="${"svelte-mjk9ig"}"><div class="${"welcome svelte-mjk9ig"}"><picture><source srcset="${"svelte-welcome.webp"}" type="${"image/webp"}">
-				<img src="${"svelte-welcome.png"}" alt="${"Welcome"}" class="${"svelte-mjk9ig"}"></picture></div>
-
-		to your new<br>SvelteKit app
-	</h1>
-
-	<h2>try editing <strong>src/routes/index.svelte</strong></h2>
-
-	${validate_component(Counter, "Counter").$$render($$result, {}, {}, {})}
-</section>`;
+var Post = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let {title} = $$props, {num} = $$props, {date} = $$props, {pdf} = $$props, {cover} = $$props;
+  if ($$props.title === void 0 && $$bindings.title && title !== void 0)
+    $$bindings.title(title);
+  if ($$props.num === void 0 && $$bindings.num && num !== void 0)
+    $$bindings.num(num);
+  if ($$props.date === void 0 && $$bindings.date && date !== void 0)
+    $$bindings.date(date);
+  if ($$props.pdf === void 0 && $$bindings.pdf && pdf !== void 0)
+    $$bindings.pdf(pdf);
+  if ($$props.cover === void 0 && $$bindings.cover && cover !== void 0)
+    $$bindings.cover(cover);
+  return `<article><header><h2 class="${"flex1"}">PL ${escape2(num)}</h2>
+    <h2 class="${"flex2"}">${title === "" ? `*****` : `${escape2(title)}`}</h2>
+    <h2 class="${"flex2"}">${escape2(date)}</h2>
+    <h2 class="${"flex0"}"><a rel="${"noopener"}" target="${"_blank"}"${add_attribute("href", pdf, 0)}>PDF</a></h2></header>
+  ${``}
+  ${``}</article>`;
 });
-var index$1 = /* @__PURE__ */ Object.freeze({
-  __proto__: null,
-  [Symbol.toStringTag]: "Module",
-  "default": Routes,
-  prerender: prerender$1
-});
-var browser = false;
-var dev = false;
-var css$1 = {
-  code: ".content.svelte-cf77e8{width:100%;max-width:var(--column-width);margin:var(--column-margin-top) auto 0 auto}",
-  map: `{"version":3,"file":"about.svelte","sources":["about.svelte"],"sourcesContent":["<script context=\\"module\\">\\n\\timport { browser, dev } from '$app/env';\\n\\n\\t// we don't need any JS on this page, though we'll load\\n\\t// it in dev so that we get hot module replacement...\\n\\texport const hydrate = dev;\\n\\n\\t// ...but if the client-side router is already loaded\\n\\t// (i.e. we came here from elsewhere in the app), use it\\n\\texport const router = browser;\\n\\n\\t// since there's no dynamic data here, we can prerender\\n\\t// it so that it gets served as a static asset in prod\\n\\texport const prerender = true;\\n</script>\\n\\n<svelte:head>\\n\\t<title>About</title>\\n</svelte:head>\\n\\n<div class=\\"content\\">\\n\\t<h1>About this app</h1>\\n\\n\\t<p>\\n\\t\\tThis is a <a href=\\"https://kit.svelte.dev\\">SvelteKit</a> app. You can make your own by typing the\\n\\t\\tfollowing into your command line and following the prompts:\\n\\t</p>\\n\\n\\t<!-- TODO lose the @next! -->\\n\\t<pre>npm init svelte@next</pre>\\n\\n\\t<p>\\n\\t\\tThe page you're looking at is purely static HTML, with no client-side interactivity needed.\\n\\t\\tBecause of that, we don't need to load any JavaScript. Try viewing the page's source, or opening\\n\\t\\tthe devtools network panel and reloading.\\n\\t</p>\\n\\n\\t<p>\\n\\t\\tThe <a href=\\"/todos\\">TODOs</a> page illustrates SvelteKit's data loading and form handling. Try using\\n\\t\\tit with JavaScript disabled!\\n\\t</p>\\n</div>\\n\\n<style>\\n\\t.content {\\n\\t\\twidth: 100%;\\n\\t\\tmax-width: var(--column-width);\\n\\t\\tmargin: var(--column-margin-top) auto 0 auto;\\n\\t}\\n</style>\\n"],"names":[],"mappings":"AA4CC,QAAQ,cAAC,CAAC,AACT,KAAK,CAAE,IAAI,CACX,SAAS,CAAE,IAAI,cAAc,CAAC,CAC9B,MAAM,CAAE,IAAI,mBAAmB,CAAC,CAAC,IAAI,CAAC,CAAC,CAAC,IAAI,AAC7C,CAAC"}`
-};
-var hydrate = dev;
-var router = browser;
 var prerender = true;
-var About = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  $$result.css.add(css$1);
-  return `${$$result.head += `${$$result.title = `<title>About</title>`, ""}`, ""}
-
-<div class="${"content svelte-cf77e8"}"><h1>About this app</h1>
-
-	<p>This is a <a href="${"https://kit.svelte.dev"}">SvelteKit</a> app. You can make your own by typing the
-		following into your command line and following the prompts:
-	</p>
-
-	
-	<pre>npm init svelte@next</pre>
-
-	<p>The page you&#39;re looking at is purely static HTML, with no client-side interactivity needed.
-		Because of that, we don&#39;t need to load any JavaScript. Try viewing the page&#39;s source, or opening
-		the devtools network panel and reloading.
-	</p>
-
-	<p>The <a href="${"/todos"}">TODOs</a> page illustrates SvelteKit&#39;s data loading and form handling. Try using
-		it with JavaScript disabled!
-	</p>
-</div>`;
-});
-var about = /* @__PURE__ */ Object.freeze({
-  __proto__: null,
-  [Symbol.toStringTag]: "Module",
-  "default": About,
-  hydrate,
-  router,
-  prerender
-});
-var css = {
-  code: `.todos.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd{width:100%;max-width:var(--column-width);margin:var(--column-margin-top) auto 0 auto;line-height:1}.new.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd{margin:0 0 0.5rem 0}input.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd{border:1px solid transparent}input.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd:focus-visible{box-shadow:inset 1px 1px 6px rgba(0, 0, 0, 0.1);border:1px solid #ff3e00 !important;outline:none}.new.svelte-dmxqmd input.svelte-dmxqmd.svelte-dmxqmd{font-size:28px;width:100%;padding:0.5em 1em 0.3em 1em;box-sizing:border-box;background:rgba(255, 255, 255, 0.05);border-radius:8px;text-align:center}.todo.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd{display:grid;grid-template-columns:2rem 1fr 2rem;grid-gap:0.5rem;align-items:center;margin:0 0 0.5rem 0;padding:0.5rem;background-color:white;border-radius:8px;filter:drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.1));transform:translate(-1px, -1px);transition:filter 0.2s, transform 0.2s}.done.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd{transform:none;opacity:0.4;filter:drop-shadow(0px 0px 1px rgba(0, 0, 0, 0.1))}form.text.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd{position:relative;display:flex;align-items:center;flex:1}.todo.svelte-dmxqmd input.svelte-dmxqmd.svelte-dmxqmd{flex:1;padding:0.5em 2em 0.5em 0.8em;border-radius:3px}.todo.svelte-dmxqmd button.svelte-dmxqmd.svelte-dmxqmd{width:2em;height:2em;border:none;background-color:transparent;background-position:50% 50%;background-repeat:no-repeat}button.toggle.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd{border:1px solid rgba(0, 0, 0, 0.2);border-radius:50%;box-sizing:border-box;background-size:1em auto}.done.svelte-dmxqmd .toggle.svelte-dmxqmd.svelte-dmxqmd{background-image:url("data:image/svg+xml,%3Csvg width='22' height='16' viewBox='0 0 22 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20.5 1.5L7.4375 14.5L1.5 8.5909' stroke='%23676778' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}.delete.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd{background-image:url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 5V22H19.5V5H4.5Z' fill='%23676778' stroke='%23676778' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M10 10V16.5' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14 10V16.5' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M2 5H22' stroke='%23676778' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M8 5L9.6445 2H14.3885L16 5H8Z' fill='%23676778' stroke='%23676778' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E%0A");opacity:0.2}.delete.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd:hover,.delete.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd:focus{transition:opacity 0.2s;opacity:1}.save.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd{position:absolute;right:0;opacity:0;background-image:url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20.5 2H3.5C2.67158 2 2 2.67157 2 3.5V20.5C2 21.3284 2.67158 22 3.5 22H20.5C21.3284 22 22 21.3284 22 20.5V3.5C22 2.67157 21.3284 2 20.5 2Z' fill='%23676778' stroke='%23676778' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M17 2V11H7.5V2H17Z' fill='white' stroke='white' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M13.5 5.5V7.5' stroke='%23676778' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M5.99844 2H18.4992' stroke='%23676778' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E%0A")}.todo.svelte-dmxqmd input.svelte-dmxqmd:focus+.save.svelte-dmxqmd,.save.svelte-dmxqmd.svelte-dmxqmd.svelte-dmxqmd:focus{transition:opacity 0.2s;opacity:1}`,
-  map: `{"version":3,"file":"index.svelte","sources":["index.svelte"],"sourcesContent":["<script context=\\"module\\">\\n\\timport { enhance } from '$lib/form';\\n\\n\\t// see https://kit.svelte.dev/docs#loading\\n\\texport const load = async ({ fetch }) => {\\n\\t\\tconst res = await fetch('/todos.json');\\n\\n\\t\\tif (res.ok) {\\n\\t\\t\\tconst todos = await res.json();\\n\\n\\t\\t\\treturn {\\n\\t\\t\\t\\tprops: { todos }\\n\\t\\t\\t};\\n\\t\\t}\\n\\n\\t\\tconst { message } = await res.json();\\n\\n\\t\\treturn {\\n\\t\\t\\terror: new Error(message)\\n\\t\\t};\\n\\t};\\n</script>\\n\\n<script>\\n\\timport { scale } from 'svelte/transition';\\n\\timport { flip } from 'svelte/animate';\\n\\n\\texport let todos;\\n\\n\\tasync function patch(res) {\\n\\t\\tconst todo = await res.json();\\n\\n\\t\\ttodos = todos.map((t) => {\\n\\t\\t\\tif (t.uid === todo.uid) return todo;\\n\\t\\t\\treturn t;\\n\\t\\t});\\n\\t}\\n</script>\\n\\n<svelte:head>\\n\\t<title>Todos</title>\\n</svelte:head>\\n\\n<div class=\\"todos\\">\\n\\t<h1>Todos</h1>\\n\\n\\t<form\\n\\t\\tclass=\\"new\\"\\n\\t\\taction=\\"/todos.json\\"\\n\\t\\tmethod=\\"post\\"\\n\\t\\tuse:enhance={{\\n\\t\\t\\tresult: async (res, form) => {\\n\\t\\t\\t\\tconst created = await res.json();\\n\\t\\t\\t\\ttodos = [...todos, created];\\n\\n\\t\\t\\t\\tform.reset();\\n\\t\\t\\t}\\n\\t\\t}}\\n\\t>\\n\\t\\t<input name=\\"text\\" aria-label=\\"Add todo\\" placeholder=\\"+ tap to add a todo\\" />\\n\\t</form>\\n\\n\\t{#each todos as todo (todo.uid)}\\n\\t\\t<div\\n\\t\\t\\tclass=\\"todo\\"\\n\\t\\t\\tclass:done={todo.done}\\n\\t\\t\\ttransition:scale|local={{ start: 0.7 }}\\n\\t\\t\\tanimate:flip={{ duration: 200 }}\\n\\t\\t>\\n\\t\\t\\t<form\\n\\t\\t\\t\\taction=\\"/todos/{todo.uid}.json?_method=patch\\"\\n\\t\\t\\t\\tmethod=\\"post\\"\\n\\t\\t\\t\\tuse:enhance={{\\n\\t\\t\\t\\t\\tpending: (data) => {\\n\\t\\t\\t\\t\\t\\ttodo.done = !!data.get('done');\\n\\t\\t\\t\\t\\t},\\n\\t\\t\\t\\t\\tresult: patch\\n\\t\\t\\t\\t}}\\n\\t\\t\\t>\\n\\t\\t\\t\\t<input type=\\"hidden\\" name=\\"done\\" value={todo.done ? '' : 'true'} />\\n\\t\\t\\t\\t<button class=\\"toggle\\" aria-label=\\"Mark todo as {todo.done ? 'not done' : 'done'}\\" />\\n\\t\\t\\t</form>\\n\\n\\t\\t\\t<form\\n\\t\\t\\t\\tclass=\\"text\\"\\n\\t\\t\\t\\taction=\\"/todos/{todo.uid}.json?_method=patch\\"\\n\\t\\t\\t\\tmethod=\\"post\\"\\n\\t\\t\\t\\tuse:enhance={{\\n\\t\\t\\t\\t\\tresult: patch\\n\\t\\t\\t\\t}}\\n\\t\\t\\t>\\n\\t\\t\\t\\t<input aria-label=\\"Edit todo\\" type=\\"text\\" name=\\"text\\" value={todo.text} />\\n\\t\\t\\t\\t<button class=\\"save\\" aria-label=\\"Save todo\\" />\\n\\t\\t\\t</form>\\n\\n\\t\\t\\t<form\\n\\t\\t\\t\\taction=\\"/todos/{todo.uid}.json?_method=delete\\"\\n\\t\\t\\t\\tmethod=\\"post\\"\\n\\t\\t\\t\\tuse:enhance={{\\n\\t\\t\\t\\t\\tresult: () => {\\n\\t\\t\\t\\t\\t\\ttodos = todos.filter((t) => t.uid !== todo.uid);\\n\\t\\t\\t\\t\\t}\\n\\t\\t\\t\\t}}\\n\\t\\t\\t>\\n\\t\\t\\t\\t<button class=\\"delete\\" aria-label=\\"Delete todo\\" />\\n\\t\\t\\t</form>\\n\\t\\t</div>\\n\\t{/each}\\n</div>\\n\\n<style>\\n\\t.todos {\\n\\t\\twidth: 100%;\\n\\t\\tmax-width: var(--column-width);\\n\\t\\tmargin: var(--column-margin-top) auto 0 auto;\\n\\t\\tline-height: 1;\\n\\t}\\n\\n\\t.new {\\n\\t\\tmargin: 0 0 0.5rem 0;\\n\\t}\\n\\n\\tinput {\\n\\t\\tborder: 1px solid transparent;\\n\\t}\\n\\n\\tinput:focus-visible {\\n\\t\\tbox-shadow: inset 1px 1px 6px rgba(0, 0, 0, 0.1);\\n\\t\\tborder: 1px solid #ff3e00 !important;\\n\\t\\toutline: none;\\n\\t}\\n\\n\\t.new input {\\n\\t\\tfont-size: 28px;\\n\\t\\twidth: 100%;\\n\\t\\tpadding: 0.5em 1em 0.3em 1em;\\n\\t\\tbox-sizing: border-box;\\n\\t\\tbackground: rgba(255, 255, 255, 0.05);\\n\\t\\tborder-radius: 8px;\\n\\t\\ttext-align: center;\\n\\t}\\n\\n\\t.todo {\\n\\t\\tdisplay: grid;\\n\\t\\tgrid-template-columns: 2rem 1fr 2rem;\\n\\t\\tgrid-gap: 0.5rem;\\n\\t\\talign-items: center;\\n\\t\\tmargin: 0 0 0.5rem 0;\\n\\t\\tpadding: 0.5rem;\\n\\t\\tbackground-color: white;\\n\\t\\tborder-radius: 8px;\\n\\t\\tfilter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.1));\\n\\t\\ttransform: translate(-1px, -1px);\\n\\t\\ttransition: filter 0.2s, transform 0.2s;\\n\\t}\\n\\n\\t.done {\\n\\t\\ttransform: none;\\n\\t\\topacity: 0.4;\\n\\t\\tfilter: drop-shadow(0px 0px 1px rgba(0, 0, 0, 0.1));\\n\\t}\\n\\n\\tform.text {\\n\\t\\tposition: relative;\\n\\t\\tdisplay: flex;\\n\\t\\talign-items: center;\\n\\t\\tflex: 1;\\n\\t}\\n\\n\\t.todo input {\\n\\t\\tflex: 1;\\n\\t\\tpadding: 0.5em 2em 0.5em 0.8em;\\n\\t\\tborder-radius: 3px;\\n\\t}\\n\\n\\t.todo button {\\n\\t\\twidth: 2em;\\n\\t\\theight: 2em;\\n\\t\\tborder: none;\\n\\t\\tbackground-color: transparent;\\n\\t\\tbackground-position: 50% 50%;\\n\\t\\tbackground-repeat: no-repeat;\\n\\t}\\n\\n\\tbutton.toggle {\\n\\t\\tborder: 1px solid rgba(0, 0, 0, 0.2);\\n\\t\\tborder-radius: 50%;\\n\\t\\tbox-sizing: border-box;\\n\\t\\tbackground-size: 1em auto;\\n\\t}\\n\\n\\t.done .toggle {\\n\\t\\tbackground-image: url(\\"data:image/svg+xml,%3Csvg width='22' height='16' viewBox='0 0 22 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20.5 1.5L7.4375 14.5L1.5 8.5909' stroke='%23676778' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\\");\\n\\t}\\n\\n\\t.delete {\\n\\t\\tbackground-image: url(\\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.5 5V22H19.5V5H4.5Z' fill='%23676778' stroke='%23676778' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M10 10V16.5' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14 10V16.5' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M2 5H22' stroke='%23676778' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M8 5L9.6445 2H14.3885L16 5H8Z' fill='%23676778' stroke='%23676778' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E%0A\\");\\n\\t\\topacity: 0.2;\\n\\t}\\n\\n\\t.delete:hover,\\n\\t.delete:focus {\\n\\t\\ttransition: opacity 0.2s;\\n\\t\\topacity: 1;\\n\\t}\\n\\n\\t.save {\\n\\t\\tposition: absolute;\\n\\t\\tright: 0;\\n\\t\\topacity: 0;\\n\\t\\tbackground-image: url(\\"data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20.5 2H3.5C2.67158 2 2 2.67157 2 3.5V20.5C2 21.3284 2.67158 22 3.5 22H20.5C21.3284 22 22 21.3284 22 20.5V3.5C22 2.67157 21.3284 2 20.5 2Z' fill='%23676778' stroke='%23676778' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M17 2V11H7.5V2H17Z' fill='white' stroke='white' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M13.5 5.5V7.5' stroke='%23676778' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M5.99844 2H18.4992' stroke='%23676778' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E%0A\\");\\n\\t}\\n\\n\\t.todo input:focus + .save,\\n\\t.save:focus {\\n\\t\\ttransition: opacity 0.2s;\\n\\t\\topacity: 1;\\n\\t}\\n</style>\\n"],"names":[],"mappings":"AA+GC,MAAM,0CAAC,CAAC,AACP,KAAK,CAAE,IAAI,CACX,SAAS,CAAE,IAAI,cAAc,CAAC,CAC9B,MAAM,CAAE,IAAI,mBAAmB,CAAC,CAAC,IAAI,CAAC,CAAC,CAAC,IAAI,CAC5C,WAAW,CAAE,CAAC,AACf,CAAC,AAED,IAAI,0CAAC,CAAC,AACL,MAAM,CAAE,CAAC,CAAC,CAAC,CAAC,MAAM,CAAC,CAAC,AACrB,CAAC,AAED,KAAK,0CAAC,CAAC,AACN,MAAM,CAAE,GAAG,CAAC,KAAK,CAAC,WAAW,AAC9B,CAAC,AAED,+CAAK,cAAc,AAAC,CAAC,AACpB,UAAU,CAAE,KAAK,CAAC,GAAG,CAAC,GAAG,CAAC,GAAG,CAAC,KAAK,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,GAAG,CAAC,CAChD,MAAM,CAAE,GAAG,CAAC,KAAK,CAAC,OAAO,CAAC,UAAU,CACpC,OAAO,CAAE,IAAI,AACd,CAAC,AAED,kBAAI,CAAC,KAAK,4BAAC,CAAC,AACX,SAAS,CAAE,IAAI,CACf,KAAK,CAAE,IAAI,CACX,OAAO,CAAE,KAAK,CAAC,GAAG,CAAC,KAAK,CAAC,GAAG,CAC5B,UAAU,CAAE,UAAU,CACtB,UAAU,CAAE,KAAK,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,GAAG,CAAC,CAAC,IAAI,CAAC,CACrC,aAAa,CAAE,GAAG,CAClB,UAAU,CAAE,MAAM,AACnB,CAAC,AAED,KAAK,0CAAC,CAAC,AACN,OAAO,CAAE,IAAI,CACb,qBAAqB,CAAE,IAAI,CAAC,GAAG,CAAC,IAAI,CACpC,QAAQ,CAAE,MAAM,CAChB,WAAW,CAAE,MAAM,CACnB,MAAM,CAAE,CAAC,CAAC,CAAC,CAAC,MAAM,CAAC,CAAC,CACpB,OAAO,CAAE,MAAM,CACf,gBAAgB,CAAE,KAAK,CACvB,aAAa,CAAE,GAAG,CAClB,MAAM,CAAE,YAAY,GAAG,CAAC,GAAG,CAAC,GAAG,CAAC,KAAK,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,GAAG,CAAC,CAAC,CACnD,SAAS,CAAE,UAAU,IAAI,CAAC,CAAC,IAAI,CAAC,CAChC,UAAU,CAAE,MAAM,CAAC,IAAI,CAAC,CAAC,SAAS,CAAC,IAAI,AACxC,CAAC,AAED,KAAK,0CAAC,CAAC,AACN,SAAS,CAAE,IAAI,CACf,OAAO,CAAE,GAAG,CACZ,MAAM,CAAE,YAAY,GAAG,CAAC,GAAG,CAAC,GAAG,CAAC,KAAK,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,GAAG,CAAC,CAAC,AACpD,CAAC,AAED,IAAI,KAAK,0CAAC,CAAC,AACV,QAAQ,CAAE,QAAQ,CAClB,OAAO,CAAE,IAAI,CACb,WAAW,CAAE,MAAM,CACnB,IAAI,CAAE,CAAC,AACR,CAAC,AAED,mBAAK,CAAC,KAAK,4BAAC,CAAC,AACZ,IAAI,CAAE,CAAC,CACP,OAAO,CAAE,KAAK,CAAC,GAAG,CAAC,KAAK,CAAC,KAAK,CAC9B,aAAa,CAAE,GAAG,AACnB,CAAC,AAED,mBAAK,CAAC,MAAM,4BAAC,CAAC,AACb,KAAK,CAAE,GAAG,CACV,MAAM,CAAE,GAAG,CACX,MAAM,CAAE,IAAI,CACZ,gBAAgB,CAAE,WAAW,CAC7B,mBAAmB,CAAE,GAAG,CAAC,GAAG,CAC5B,iBAAiB,CAAE,SAAS,AAC7B,CAAC,AAED,MAAM,OAAO,0CAAC,CAAC,AACd,MAAM,CAAE,GAAG,CAAC,KAAK,CAAC,KAAK,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,CAAC,GAAG,CAAC,CACpC,aAAa,CAAE,GAAG,CAClB,UAAU,CAAE,UAAU,CACtB,eAAe,CAAE,GAAG,CAAC,IAAI,AAC1B,CAAC,AAED,mBAAK,CAAC,OAAO,4BAAC,CAAC,AACd,gBAAgB,CAAE,IAAI,uQAAuQ,CAAC,AAC/R,CAAC,AAED,OAAO,0CAAC,CAAC,AACR,gBAAgB,CAAE,IAAI,yrBAAyrB,CAAC,CAChtB,OAAO,CAAE,GAAG,AACb,CAAC,AAED,iDAAO,MAAM,CACb,iDAAO,MAAM,AAAC,CAAC,AACd,UAAU,CAAE,OAAO,CAAC,IAAI,CACxB,OAAO,CAAE,CAAC,AACX,CAAC,AAED,KAAK,0CAAC,CAAC,AACN,QAAQ,CAAE,QAAQ,CAClB,KAAK,CAAE,CAAC,CACR,OAAO,CAAE,CAAC,CACV,gBAAgB,CAAE,IAAI,gpBAAgpB,CAAC,AACxqB,CAAC,AAED,mBAAK,CAAC,mBAAK,MAAM,CAAG,mBAAK,CACzB,+CAAK,MAAM,AAAC,CAAC,AACZ,UAAU,CAAE,OAAO,CAAC,IAAI,CACxB,OAAO,CAAE,CAAC,AACX,CAAC"}`
-};
-var load = async ({fetch: fetch22}) => {
-  const res = await fetch22("/todos.json");
-  if (res.ok) {
-    const todos = await res.json();
-    return {props: {todos}};
-  }
-  const {message} = await res.json();
-  return {error: new Error(message)};
-};
-var Todos = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let {todos} = $$props;
-  if ($$props.todos === void 0 && $$bindings.todos && todos !== void 0)
-    $$bindings.todos(todos);
-  $$result.css.add(css);
-  return `${$$result.head += `${$$result.title = `<title>Todos</title>`, ""}`, ""}
-
-<div class="${"todos svelte-dmxqmd"}"><h1>Todos</h1>
-
-	<form class="${"new svelte-dmxqmd"}" action="${"/todos.json"}" method="${"post"}"><input name="${"text"}" aria-label="${"Add todo"}" placeholder="${"+ tap to add a todo"}" class="${"svelte-dmxqmd"}"></form>
-
-	${each(todos, (todo) => `<div class="${["todo svelte-dmxqmd", todo.done ? "done" : ""].join(" ").trim()}"><form action="${"/todos/" + escape2(todo.uid) + ".json?_method=patch"}" method="${"post"}"><input type="${"hidden"}" name="${"done"}"${add_attribute("value", todo.done ? "" : "true", 0)} class="${"svelte-dmxqmd"}">
-				<button class="${"toggle svelte-dmxqmd"}" aria-label="${"Mark todo as " + escape2(todo.done ? "not done" : "done")}"></button></form>
-
-			<form class="${"text svelte-dmxqmd"}" action="${"/todos/" + escape2(todo.uid) + ".json?_method=patch"}" method="${"post"}"><input aria-label="${"Edit todo"}" type="${"text"}" name="${"text"}"${add_attribute("value", todo.text, 0)} class="${"svelte-dmxqmd"}">
-				<button class="${"save svelte-dmxqmd"}" aria-label="${"Save todo"}"></button></form>
-
-			<form action="${"/todos/" + escape2(todo.uid) + ".json?_method=delete"}" method="${"post"}"><button class="${"delete svelte-dmxqmd"}" aria-label="${"Delete todo"}"></button></form>
-		</div>`)}
-</div>`;
+var router = false;
+async function load({fetch: fetch3}) {
+  const res = await fetch3("https://pl.maop.fr/wp-json/wp/v2/posts");
+  return {props: {posts: await res.json()}};
+}
+var Routes = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let filteredPosts;
+  let {posts} = $$props;
+  let randomPost = "";
+  let searchTerm = "";
+  onMount(() => {
+    randomPost = posts[Math.floor(Math.random() * 20)];
+  });
+  if ($$props.posts === void 0 && $$bindings.posts && posts !== void 0)
+    $$bindings.posts(posts);
+  filteredPosts = posts.filter((post) => post.acf.num.toLowerCase().indexOf(searchTerm) !== -1 || post.acf.date.toLowerCase().indexOf(searchTerm) !== -1 || post.acf.title.toLowerCase().indexOf(searchTerm) !== -1 || post.acf.article1.author.toLowerCase().indexOf(searchTerm) !== -1 || post.acf.article1.title.toLowerCase().indexOf(searchTerm) !== -1 || post.acf.article2.author.toLowerCase().indexOf(searchTerm) !== -1 || post.acf.article2.title.toLowerCase().indexOf(searchTerm) !== -1 || post.acf.article3.author.toLowerCase().indexOf(searchTerm) !== -1 || post.acf.article3.title.toLowerCase().indexOf(searchTerm) !== -1 || post.acf.article4.author.toLowerCase().indexOf(searchTerm) !== -1 || post.acf.article4.title.toLowerCase().indexOf(searchTerm) !== -1);
+  return `${validate_component(Front, "Front").$$render($$result, {}, {}, {
+    default: () => `${randomPost && randomPost.acf.image ? `
+	  <img${add_attribute("src", randomPost.acf.image.sizes.large, 0)} srcset="${escape2(randomPost.acf.image.sizes.thumbnail) + " 400w, " + escape2(randomPost.acf.image.sizes.medium) + " 800w, " + escape2(randomPost.acf.image.sizes.large) + " 1600w"}" width="${"800"}" height="${"600"}" alt="${"plan libre journal"}">` : ``}`
+  })}
+  <nav class="${"sticky t0 p251251 bg-white flex jc-sb"}"><form role="${"search"}"><input type="${"text"}" name="${"search"}" aria-label="${"Search"}" placeholder="${"Recherche"}"${add_attribute("value", searchTerm, 1)}></form>
+	<a href="${"https://www.instagram.com/plan_libre/"}" rel="${"noopener"}" target="${"_blank"}">Instagram</a></nav>
+  <main>${each(filteredPosts, (post) => `${validate_component(Post, "Post").$$render($$result, {
+    num: post.acf.num,
+    title: post.acf.title,
+    date: post.acf.date,
+    pdf: post.acf.pdf,
+    cover: post.acf.cover.sizes.thumbnail
+  }, {}, {
+    default: () => `<div class="${"content flex"}">${post.acf.image ? `<div class="${"p flex jc-center flex50"}">
+			  
+			  <img${add_attribute("src", post.acf.image.sizes.large, 0)} srcset="${escape2(post.acf.image.sizes.thumbnail) + " 400w, " + escape2(post.acf.image.sizes.medium) + " 800w, " + escape2(post.acf.image.sizes.large) + " 1600w"}" alt="${"plan libre"}">
+			</div>` : ``}
+		  <div class="${"p flex wrap jc-sa flex50"}">${post.acf.article1.title === "" ? `<div></div>` : `<div class="${"p flex50 article"}"><a${add_attribute("href", post.acf.article1.pdf, 0)} rel="${"noopener"}" target="${"_blank"}"><div class="${"center"}"><h4>${escape2(post.acf.article1.author)}</h4>
+					<h3>${escape2(post.acf.article1.title)}</h3>
+				  </div></a>
+			  </div>`}
+			${post.acf.article2.title === "" ? `<div></div>` : `<div class="${"p flex50 article"}"><a${add_attribute("href", post.acf.article2.pdf, 0)} rel="${"noopener"}" target="${"_blank"}"><div class="${"center"}"><h4>${escape2(post.acf.article2.author)}</h4>
+					<h3>${escape2(post.acf.article2.title)}</h3>
+				  </div></a>
+			  </div>`}
+			${post.acf.article3.title === "" ? `<div></div>` : `<div class="${"p flex50 article"}"><a${add_attribute("href", post.acf.article3.pdf, 0)} rel="${"noopener"}" target="${"_blank"}"><div class="${"center"}"><h4>${escape2(post.acf.article3.author)}</h4>
+					<h3>${escape2(post.acf.article3.title)}</h3>
+				  </div></a>
+			  </div>`}
+			${post.acf.article4.title === "" ? `<div></div>` : `<div class="${"p flex50 article"}"><a${add_attribute("href", post.acf.article4.pdf, 0)} rel="${"noopener"}" target="${"_blank"}"><div class="${"center"}"><h4>${escape2(post.acf.article4.author)}</h4>
+					<h3>${escape2(post.acf.article4.title)}</h3>
+				  </div></a>
+			  </div>`}
+		  </div></div>
+	  `
+  })}`)}</main>`;
 });
 var index = /* @__PURE__ */ Object.freeze({
   __proto__: null,
   [Symbol.toStringTag]: "Module",
-  "default": Todos,
+  "default": Routes,
+  prerender,
+  router,
   load
 });
 
@@ -3249,17 +2936,3 @@ var entry_default = async (req, res) => {
  * Copyright(c) 2015 Douglas Christopher Wilson
  * MIT Licensed
  */
-/*! *****************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */

@@ -1,45 +1,34 @@
+<script context="module">
+	export const prerender = true;
+	export const router = false;
+
+
+	export async function load({ fetch }) {
+		const res = await fetch('https://pl.maop.fr/wp-json/wp/v2/pages');
+		return {
+			props: {
+				posts: await res.json()
+			}
+		};
+	}
+</script>
+
 <script>
-	import Header from '$lib/Header/index.svelte';
+	  import Header from "$lib/Header.svelte";
+  import Subscribe from "$lib/Subscribe.svelte";
+  import Logo from "$lib/Logo.svelte";
+  export let posts;
 	import '../app.css';
 </script>
 
-<Header />
-
-<main>
-	<slot />
-</main>
-
-<footer>
-	<p>visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to learn SvelteKit</p>
-</footer>
-
-<style>
-	main {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		padding: 1rem;
-		width: 100%;
-		max-width: 1024px;
-		margin: 0 auto;
-		box-sizing: border-box;
-	}
-
-	footer {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		padding: 40px;
-	}
-
-	footer a {
-		font-weight: bold;
-	}
-
-	@media (min-width: 480px) {
-		footer {
-			padding: 40px 0;
-		}
-	}
-</style>
+<Header>
+	{#each posts as post} {#if post.slug === 'header'} {@html
+	post.content.rendered} {/if} {/each}
+  </Header>
+	<slot></slot>
+	<Logo/>
+  <Subscribe>
+	{#each posts as post} {#if post.slug === 'subscribe'}
+	{@html post.content.rendered}
+	{/if} {/each}
+  </Subscribe>
