@@ -33,7 +33,7 @@
 					<a
 						rel="noopener"
 						target="_blank"
-						href="https://maison-de-larchitecture-occitanie-pyrenees.sumup.link/abonnement-plan-libre-dash-1an"
+						href="https://maison-de-larchitecture-occitanie-pyrenees.sumup.link/abonnement-plan-libre-1an"
 						class="btn"
 					>
 						S’abonner
